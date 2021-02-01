@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 from PyBlastAfterglow.uutils import cgs
-from PyBlastAfterglow.wrapper import StructuredJet
+from PyBlastAfterglow.wrapper import BlastWave
 
 thetaObs = 0.  # [0., 0.16]
 freqobs = 1e9  # [1e9, 1e18]
@@ -50,7 +50,7 @@ def test_compare_jet_lightcurves(withSpread = False, a = 1.,
 
         # --- # uniform structured model # --- #
 
-        model = StructuredJet.from_analytic_pars(
+        model = BlastWave.from_analytic_pars(
             nlayers=100,
             EEc0=E0,
             Gamc0=150.,

@@ -1,1 +1,1 @@
-from .wrapper import StructuredJet
+from .wrapper import BlastWave

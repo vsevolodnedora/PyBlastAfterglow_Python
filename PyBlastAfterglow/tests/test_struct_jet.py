@@ -13,7 +13,7 @@ from PyBlastAfterglow.dynamics import EqOpts, Driver_Nava_FS, Driver_Peer_FS
 from PyBlastAfterglow.electrons import Electron_BPL
 from PyBlastAfterglow.synchrotron import Synchrotron_Joh06, Synchrotron_WSPN99
 from PyBlastAfterglow.eats import EATS_StructuredLayersSource, generate_skyimage
-from PyBlastAfterglow.wrapper import StructuredJet
+from PyBlastAfterglow.wrapper import BlastWave
 
 package_dir = Path(__file__).parent.parent.parent
 # where to read sampled files
@@ -61,7 +61,7 @@ def compare_jet_lightcurves(withSpread = False,
 
         # --- # uniform structured model # --- #
 
-        model = StructuredJet.from_analytic_pars(
+        model = BlastWave.from_analytic_pars(
             nlayers=nlayers,
             EEc0=E0,
             Gamc0=Gamc0,
@@ -207,7 +207,7 @@ class TestStructJet():
         thetaC = np.pi / 2.  # Half-opening angle in radians
         thetaW = np.pi / 2.  # Truncation angle, unused for top-hat
 
-        model = StructuredJet.from_analytic_pars(
+        model = BlastWave.from_analytic_pars(
             structure="uniform",
             nlayers=nlayers,
             EEc0=E0,

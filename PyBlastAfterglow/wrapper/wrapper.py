@@ -2,6 +2,7 @@
 
 """
 
+import copy # assures stability in multiprocesor execution
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -15,7 +16,7 @@ from PyBlastAfterglow.eats import EATS_StructuredLayersSource #, EATS_UniformSin
 from PyBlastAfterglow.shells import Shell_FS, Shell_FS_Electrons_Synchrotron
 from PyBlastAfterglow.uutils import cgs
 
-class StructuredJet:
+class BlastWave:
 
     def __init__(self,
                  driver=(None, {}),
@@ -25,37 +26,48 @@ class StructuredJet:
                  **kwargs):
 
         # set parameters
-        if driver[0] == "Peer": o_driver, driver_kwargs = (Driver_Peer_FS, driver[1])
-        elif driver[0] == "Nava": o_driver, driver_kwargs = (Driver_Nava_FS, driver[1])
-        elif driver[0] == "NavaFSRS": o_driver, driver_kwargs = (Driver_Nava_FSRS, driver[1])
+        if driver[0] == "Peer":
+            o_driver, driver_kwargs = (Driver_Peer_FS, copy.deepcopy(driver[1]))
+        elif driver[0] == "Nava":
+            o_driver, driver_kwargs = (Driver_Nava_FS, copy.deepcopy(driver[1]))
+        elif driver[0] == "NavaFSRS":
+            o_driver, driver_kwargs = (Driver_Nava_FSRS, copy.deepcopy(driver[1]))
         else: raise NameError("Driver Name is not recognized: {}".format(driver[0]))
 
-        if driver_kwargs["eq_dthetadr"] == "dthetadr_None": driver_kwargs["eq_dthetadr"] = EqOpts.dthetadr_None
-        elif driver_kwargs["eq_dthetadr"] == "dthetadr_Adi": driver_kwargs["eq_dthetadr"] = EqOpts.dthetadr_Adi
-        elif driver_kwargs["eq_dthetadr"] == "dthetadr_Adi_Rd": driver_kwargs["eq_dthetadr"] = EqOpts.dthetadr_Adi_Rd
-        elif driver_kwargs["eq_dthetadr"] == "dthetadr_AA": driver_kwargs["eq_dthetadr"] = EqOpts.dthetadr_AA
-        elif driver_kwargs["eq_dthetadr"] == "dthetadr_AA_Rd": driver_kwargs["eq_dthetadr"] = EqOpts.dthetadr_AA_Rd
+        if driver_kwargs["eq_dthetadr"] == "dthetadr_None": tmp = EqOpts.dthetadr_None
+        elif driver_kwargs["eq_dthetadr"] == "dthetadr_Adi": tmp = EqOpts.dthetadr_Adi
+        elif driver_kwargs["eq_dthetadr"] == "dthetadr_Adi_Rd": tmp = EqOpts.dthetadr_Adi_Rd
+        elif driver_kwargs["eq_dthetadr"] == "dthetadr_AA": tmp = EqOpts.dthetadr_AA
+        elif driver_kwargs["eq_dthetadr"] == "dthetadr_AA_Rd": tmp = EqOpts.dthetadr_AA_Rd
         else: raise NameError("Driver kwarg 'eq_dthetadr' is not correct: {}".format(driver_kwargs["eq_dthetadr"]))
+        driver_kwargs["eq_dthetadr"] = tmp
 
-        if driver_kwargs["eq_gammaAdi"] == "gamma_adi_peer": driver_kwargs["eq_gammaAdi"] = EqOpts.gamma_adi_peer
-        elif driver_kwargs["eq_gammaAdi"] == "gamma_adi_nava": driver_kwargs["eq_gammaAdi"] = EqOpts.gamma_adi_nava
+        if driver_kwargs["eq_gammaAdi"] == "gamma_adi_peer": tmp = EqOpts.gamma_adi_peer
+        elif driver_kwargs["eq_gammaAdi"] == "gamma_adi_nava": tmp = EqOpts.gamma_adi_nava
         else: raise NameError("Driver kwarg 'eq_gammaAdi' is not correct: {}".format(driver_kwargs["eq_gammaAdi"]))
+        driver_kwargs["eq_gammaAdi"] = tmp
 
-        if driver_kwargs["eq_rhoprime"] == "rho2_rel": driver_kwargs["eq_rhoprime"] = EqOpts.rho2_rel
-        elif driver_kwargs["eq_rhoprime"] == "rho2_transrel": driver_kwargs["eq_rhoprime"] = EqOpts.rho2_transrel
-        else: raise NameError("Driver kwarg 'eq_rhoprime' is not correct: {}".format(driver_kwargs["eq_gammaAdi"]))
+        if driver_kwargs["eq_rhoprime"] == "rho2_rel": tmp = EqOpts.rho2_rel
+        elif driver_kwargs["eq_rhoprime"] == "rho2_transrel": tmp = EqOpts.rho2_transrel
+        else: raise NameError("Driver kwarg 'eq_rhoprime' is not correct: {}".format(driver_kwargs["eq_rhoprime"]))
+        driver_kwargs["eq_rhoprime"] = tmp
 
-        if electrons[0] == "Electron_BPL": o_electrons, electrons_kwargs = (Electron_BPL, electrons[1])
-        elif electrons[0] == "Electron_BPL_Accurate": o_electrons, electrons_kwargs = (Electron_BPL_Accurate, electrons[1])
+        if electrons[0] == "Electron_BPL":
+            o_electrons, electrons_kwargs = (Electron_BPL, copy.deepcopy(electrons[1]))
+        elif electrons[0] == "Electron_BPL_Accurate":
+            o_electrons, electrons_kwargs = (Electron_BPL_Accurate, copy.deepcopy(electrons[1]))
         else: raise NameError("Electrons name is not recognized: {}".format(electrons[0]))
 
-        if synchrotron[0] == "Synchrotron_Joh06": o_synchrotron, synchrotron_kwargs = (Synchrotron_Joh06, synchrotron[1])
-        elif synchrotron[0] == "Synchrotron_WSPN99": o_synchrotron, synchrotron_kwargs = (Synchrotron_WSPN99, synchrotron[1])
-        elif synchrotron[0] == "Synchrotron_DM06": o_synchrotron, synchrotron_kwargs = (Synchrotron_DM06, synchrotron[1])
+        if synchrotron[0] == "Synchrotron_Joh06":
+            o_synchrotron, synchrotron_kwargs = (Synchrotron_Joh06, copy.deepcopy(synchrotron[1]))
+        elif synchrotron[0] == "Synchrotron_WSPN99":
+            o_synchrotron, synchrotron_kwargs = (Synchrotron_WSPN99, copy.deepcopy(synchrotron[1]))
+        elif synchrotron[0] == "Synchrotron_DM06":
+            o_synchrotron, synchrotron_kwargs = (Synchrotron_DM06, copy.deepcopy(synchrotron[1]))
         else: raise NameError("Syncrotron Name is not recognized: {}".format(synchrotron[0]))
 
         if eats[0] == "EATS_StructuredLayersSource":
-            o_eats, eats_kwargs = (EATS_StructuredLayersSource, eats[1])
+            o_eats, eats_kwargs = (EATS_StructuredLayersSource, copy.deepcopy(eats[1]))
         else:
             raise NameError("EATS Name is not recognized: {}".format(eats[0]))
 
@@ -702,3 +714,12 @@ class StructuredJet:
 #             self.eats = None
 #
 #
+
+#
+# class StructuredEjecta:
+#
+#     def __init__(
+#             self,
+#             shell_data,
+#
+#     ):
