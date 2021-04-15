@@ -5,6 +5,8 @@ import numpy as np
 from scipy import interpolate
 from tqdm import tqdm
 
+# from numba import njit
+
 from PyBlastAfterglow.uutils import cgs
 from PyBlastAfterglow.synchrotron import freq_to_integrate
 
@@ -255,17 +257,13 @@ class EATS_StructuredLayersSource:
 
         return (fluxes, obs_Rs, obs_thetas, obs_gams, obs_betas, obs_calphas)
 
-    def lightcurve(self, alpha_obs, timegrid, freq, z, d_l, jet='principle'):
+    def _loop_for_lightcurve(self, jet, alpha_obs, timegrid, freq_z):
 
         light_curve = np.zeros([len(timegrid), self.nlayers])
-        if self.nlayers == 1:
-            raise ValueError("This EATS module requires nlayers >> 1 for correct calculations. Use nlayers ~ 100")
 
         if jet == 'principle': obsangle_func = obsangle
         elif jet == 'counter': obsangle_func = obsangle_cj
         else: raise NameError("Jet type is not recognized")
-
-        freq_z = (1. + z) * freq
 
         for ii in range(self.ncells):#tqdm(range(self.ncells)):
             i_layer = self.layer[ii] - 1
@@ -303,9 +301,59 @@ class EATS_StructuredLayersSource:
             #
             light_curve[aval_times, i_layer] = light_curve[aval_times, i_layer] + layer_eats_flux
 
-        light_curve *= (1. + z) / (d_l ** 2) #  / 2 ??? or 4 ???
+        return light_curve
 
-        return np.sum(light_curve, axis=1)
+    def lightcurve(self, alpha_obs, timegrid, freq, z, d_l, jet='principle'):
+
+        # light_curve = np.zeros([len(timegrid), self.nlayers])
+        if self.nlayers == 1:
+            raise ValueError("This EATS module requires nlayers >> 1 for correct calculations. Use nlayers ~ 100")
+
+        freq_z = (1. + z) * freq
+
+        # tmp = njit(self._loop_for_lightcurve)
+        light_curve = self._loop_for_lightcurve(jet, alpha_obs, timegrid, freq_z)
+        light_curve *= (1. + z) / (d_l ** 2)
+
+        # for ii in range(self.ncells):#tqdm(range(self.ncells)):
+        #     i_layer = self.layer[ii] - 1
+        #     # phi coordinate point of the cell
+        #     phi_cell = self.cphis[ii]
+        #
+        #     # theta coordiantes of the cell
+        #     theta_cellR = self.cthetas0[i_layer] # Value! -> ARRAY [Gavin suggested use 0]
+        #     # theta_cellR = self.cthetas[i_layer][:]
+        #     calphaR = obsangle_func(theta_cellR, phi_cell, alpha_obs)  # 0. for forward jet
+        #
+        #     # observer times during which radiation from 'phi, theta[]' elements arrive
+        #     ttobs = self.tts[i_layer] + self.Rs[i_layer] / cgs.c * (1. - calphaR)  # arr
+        #     # part of the 'emssion' observer time that falls within observation window
+        #     aval_times = (np.min(ttobs) < timegrid) & (timegrid <= np.max(ttobs))
+        #     # Radii values of elements emission from which is visible at 'ttobs'
+        #     Rint = interpolate.interp1d(ttobs, self.Rs[i_layer], copy=False)
+        #     r_obs = Rint(timegrid[aval_times])  #
+        #     # Quantities visible at ttobs when rad. emitted at r_obs of the jet reaches observer
+        #     Gamma_obs = self.int_data["Gamma"][i_layer](r_obs)
+        #     beta_obs = self.int_data["beta"][i_layer](r_obs)
+        #
+        #     # theta_obs = self.cthetas0[i_layer] # self.int_data["cthetas"][i_layer](r_obs) [Gavin suggested to use 0]
+        #     # theta_obs = self.int_data["cthetas"][i_layer](r_obs)
+        #     calpha = calphaR#obsangle_func(theta_obs, phi_cell, alpha_obs)  # 0. for forward
+        #
+        #     # doppler factor
+        #     delta_D =  Gamma_obs * (1. - beta_obs * calpha) # (1. - beta_obs) / (1. - beta_obs * calpha)
+        #     # frequency in the comoving frame
+        #     freqprime = freq_z * delta_D
+        #     # flux in the comoving frame
+        #     fluxprime = self._get_eats_flux(freqprime, r_obs, i_layer)
+        #     # part of the flux visible at times 'timegrid' from layer 'i_layer'
+        #     layer_eats_flux = fluxprime * np.power(delta_D, -3)
+        #     #
+        #     light_curve[aval_times, i_layer] = light_curve[aval_times, i_layer] + layer_eats_flux
+        #
+        # light_curve *= (1. + z) / (d_l ** 2) #  / 2 ??? or 4 ???
+        #
+        return light_curve#np.sum(light_curve, axis=1)
 
     def flux_at_time(self, alpha_obs, time, freq, z, d_l, jet='principle'):
         fluxes, _, _, _, _, _ = self._compute_eats_vals(alpha_obs, time, freq, z, jet=jet)
@@ -390,6 +438,20 @@ class EATS_StructuredLayersSource:
                                np.cos(self.cphis)
 
         return (fluxes, obs_Rs * im_xxs, obs_Rs * im_yys, obs_Rs)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

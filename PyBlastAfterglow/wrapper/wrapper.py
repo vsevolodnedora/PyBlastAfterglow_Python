@@ -12,7 +12,7 @@ from PyBlastAfterglow.dynamics import Driver_Peer_FS, Driver_Nava_FS, Driver_Nav
 from PyBlastAfterglow.electrons import Electron_BPL, Electron_BPL_Accurate
 from PyBlastAfterglow.synchrotron import Synchrotron_Joh06, Synchrotron_WSPN99, Synchrotron_DM06, freq_to_integrate
 from PyBlastAfterglow.structure import Structure_Angular #, Structure_Uniform
-from PyBlastAfterglow.eats import EATS_StructuredLayersSource #, EATS_UniformSingleSource
+from PyBlastAfterglow.eats import EATS_StructuredLayersSource, EATS_StructuredLayersSource_Jit#, EATS_UniformSingleSource
 from PyBlastAfterglow.shells import Shell_FS, Shell_FS_Electrons_Synchrotron
 from PyBlastAfterglow.uutils import cgs
 
@@ -68,6 +68,8 @@ class BlastWave:
 
         if eats[0] == "EATS_StructuredLayersSource":
             o_eats, eats_kwargs = (EATS_StructuredLayersSource, copy.deepcopy(eats[1]))
+        elif eats[0] == "EATS_StructuredLayersSource_Jit":
+            o_eats, eats_kwargs = (EATS_StructuredLayersSource_Jit, copy.deepcopy(eats[1]))
         else:
             raise NameError("EATS Name is not recognized: {}".format(eats[0]))
 

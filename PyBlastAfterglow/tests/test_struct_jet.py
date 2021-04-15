@@ -76,11 +76,11 @@ def compare_jet_lightcurves(withSpread = False,
                            "ode_rtol": 1e-3, "ode_nsteps": 3000}),#Driver_Nava_FS,
             electrons=(electrons, {"p": p, "eps_e": eps_e, "eps_b": eps_B}),
             synchrotron=(synchrotron, {"ssa":ssa}),
-            eats=("EATS_StructuredLayersSource", {})
+            eats=("EATS_StructuredLayersSource_Jit", {})
         )
 
         lightcurve = model.eats.lightcurve(i_thetaobs, t, i_freq, z, dL)
-
+        lightcurve = np.sum(lightcurve, axis=1)
         if label:
             ax.plot(t, lightcurve * 1e23, color=i_color, ls=ls, lw=lw,
                     label=r"$\theta_{obs}=$" + "{:.2f}".format(i_thetaobs) + r" $\nu$={:.1e}".format(i_freq))

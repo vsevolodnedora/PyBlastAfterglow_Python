@@ -49,6 +49,8 @@ def test_compare_jet_lightcurves(withSpread = False, a = 1.,
 
 
         # --- # uniform structured model # --- #
+        # import time
+        # tstart = time.time()
 
         model = BlastWave.from_analytic_pars(
             nlayers=100,
@@ -65,10 +67,14 @@ def test_compare_jet_lightcurves(withSpread = False, a = 1.,
                                        "ode_rtol": 1e-3, "ode_nsteps": 3000}),
             electrons=("Electron_BPL", {"p": p, "eps_e": eps_e, "eps_b": eps_B}),
             synchrotron=("Synchrotron_WSPN99", {"ssa":False}),
-            eats=("EATS_StructuredLayersSource", {})
+            eats=("EATS_StructuredLayersSource_Jit", {})
         )
 
         lightcurve = model.eats.lightcurve(i_thetaobs, t, i_freq, z, dL)
+
+        # tend = time.time()
+
+        # print("total time: {}".format(tend - tstart)); exit(0)
 
         ax.plot(t, lightcurve * 1e23 * 1e3, color=i_color, ls='-',
                 label=r"$\theta_{obs}=$" + "{:.2f}".format(i_thetaobs) + r" $\nu$={:.1e}".format(i_freq))
@@ -151,6 +157,8 @@ def test_compare_jet_lightcurves(withSpread = False, a = 1.,
 
 test_compare_jet_lightcurves(withSpread = False, a = 0, eq_dthetadr="dthetadr_None", thetaMax=np.pi/2.,
                                            save="test_jet_with_afterglowpy_nospread.png", load_data=True)
+
+
 
 test_compare_jet_lightcurves(withSpread = True, a = 1, eq_dthetadr="dthetadr_AA", thetaMax=np.pi/2.,
                                            save="test_jet_with_afterglowpy_spread.png", load_data=True)
