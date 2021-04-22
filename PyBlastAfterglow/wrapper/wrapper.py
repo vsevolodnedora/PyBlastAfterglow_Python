@@ -8,9 +8,9 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from scipy import interpolate
 
-from PyBlastAfterglow.dynamics import Driver_Peer_FS, Driver_Nava_FS, Driver_Nava_FSRS, rho_dlnrho1dR, EqOpts
-from PyBlastAfterglow.electrons import Electron_BPL, Electron_BPL_Accurate
-from PyBlastAfterglow.synchrotron import Synchrotron_Joh06, Synchrotron_WSPN99, Synchrotron_DM06, freq_to_integrate
+from PyBlastAfterglow.dynamics import (Driver_Peer_FS, Driver_Nava_FS, Driver_Nava_FSRS, rho_dlnrho1dR, EqOpts)
+from PyBlastAfterglow.electrons import (Electron_BPL, Electron_BPL_Accurate)
+from PyBlastAfterglow.synchrotron import (Synchrotron_Joh06, Synchrotron_WSPN99, Synchrotron_DM06, freq_to_integrate)
 from PyBlastAfterglow.structure import Structure_Angular #, Structure_Uniform
 from PyBlastAfterglow.eats import EATS_StructuredLayersSource, EATS_StructuredLayersSource_Jit#, EATS_UniformSingleSource
 from PyBlastAfterglow.shells import Shell_FS, Shell_FS_Electrons_Synchrotron

@@ -1294,7 +1294,8 @@ if __name__ == "__main__":
     rho = 1e-2 * cgs.mppme
     RR = np.logspace(14., 23., 1000)
     dyn = Driver_Peer_FS(E0=1e53, M0=1e53 / (cgs.c ** 2 * 1000), Rstart=RR[0], rho0=rho, useSpread=False, aa=-1., ncells=1,
-                         ode_rtol=1e-4, ode_nsteps=1000, eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi/2.)
+                         ode_rtol=1e-4, ode_nsteps=1000, eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi/2.,
+                         eq_gammaAdi=EqOpts.gamma_adi_nava, eq_rhoprime=EqOpts.rho2_rel)
     for i in range(1,len(RR)):
         # dyn.update_ode_pars(rho=rho)
         rho, dlnrho1dR = rho_dlnrho1dR(RR[i], 1e-2, None, None, None, None)
@@ -1303,15 +1304,16 @@ if __name__ == "__main__":
     # print(dyn.get("Gamma"))
     dyn2 = Driver_Nava_FS(E0=1e53, M0=1e53 / (cgs.c ** 2 * 1000), Rstart=RR[0], rho0=rho, useSpread=False, aa=-1., ncells=1,
                           adiabLoss=True, epsilon_e_rad=0,
-                          ode_rtol=1e-4, ode_nsteps=1000,  eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi/2., )
+                          ode_rtol=1e-4, ode_nsteps=1000,  eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi/2.,
+                          eq_gammaAdi=EqOpts.gamma_adi_nava, eq_rhoprime=EqOpts.rho2_rel)
     for i in range(1,len(RR)):
         # dyn2.update_ode_pars(rho=rho)
         rho, dlnrho1dR = rho_dlnrho1dR(RR[i], 1e-2, None, None, None, None)
         dyn2.evolove(RR[i],rho, dlnrho1dR)
 
     dyn3 = Driver_Nava_FSRS(E0=1e53, M0=1e53 / (cgs.c ** 2 * 1000), Rstart=RR[0], rho0=rho, useSpread=False, aa=-1., ncells=1,
-                            adiabLoss=True, epsilon_e_rad=0, tprompt=1e3,
-                            adiabLoss_RS=True, epsilon_e_rad_RS=0,
+                            adiabLoss=True, epsilon_e_rad=0, tprompt=1e3, eq_gammaAdi=EqOpts.gamma_adi_nava,
+                            adiabLoss_RS=True, epsilon_e_rad_RS=0, eq_rhoprime=EqOpts.rho2_rel,
                             ode_rtol=1e-8, ode_nsteps=1000,  eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi/2.)
     for i in range(1,len(RR)):
         # dyn3.update_ode_pars(rho=rho)

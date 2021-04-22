@@ -389,7 +389,7 @@ def performance():
                        "ode_rtol": 1e-3, "ode_nsteps": 3000, "ncells": 0})
     electrons = ("Electron_BPL", {"p": 2.5, "eps_e": 1e-1, "eps_b": 1e-1})
     synchrotron = ("Synchrotron_Joh06", {"ssa": True})
-    eats = ("EATS_StructuredLayersSource", {})
+    eats = ("EATS_StructuredLayersSource_Jit", {})
     obs = ("lightcurve", {"alpha_obs": 0., "timegrid": times * cgs.day,
                           "freq": 3e9, "z": 0.001, "d_l": 100e6 * cgs.pc})
 

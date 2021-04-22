@@ -110,23 +110,60 @@ def interp1d(x, values, targetxs):
 
     return result
 
-# @numba.njit("double[:](double[:])")
-# def get_beta(Gamma):
-#     return np.sqrt(1. - np.power(Gamma, -2))
+spec = [
+    ('x', double[:]),  # a simple scalar field
+    ('y', double[:]),  # an array field
+    ('values', double[:,:]),  # an array field
+]
+@jitclass(spec)
+class Interp2D:
+    def __init__(self, x, y, values):
+        self.x = x
+        self.y = y
+        self.values = values
 
-# @numba.njit("double[:](double[:], double)")
-# def get_delta_D(Gamma_obs, calpha):
-#     beta_obs = np.sqrt(1. - np.power(Gamma_obs, -2))
-#     delta_D = Gamma_obs * (1. - beta_obs * calpha)
-#     return delta_D
+    def compute(self, targetxs, targetys):
 
-# @numba.njit()
-def interpolate_flux(interpolator, freqprime, radii):
-    freqsprime = np.full_like(radii, freqprime)
-    power = interpolator((radii, freqsprime))
-    return power  # np.power(10., power)
+        nx = len(self.x)
+        ny = len(self.y)
 
-# @numba.njit()
+        ntarget = targetxs.shape[0]
+
+        result = np.zeros((ntarget,))
+
+        for targ in range(ntarget):
+            westix = len(self.x) - 2
+            eastix = len(self.x) - 1
+            for ix in range(1, nx):
+                if targetxs[targ] <= self.x[ix]:
+                    westix = ix - 1
+                    eastix = ix
+                    break
+
+            southiy = len(self.y) - 2
+            northiy = len(self.y) - 1
+            for iy in range(1, ny):
+                if targetys[targ] <= self.y[iy]:
+                    southiy = iy - 1
+                    northiy = iy
+                    break
+
+            xratio = (targetxs[targ] - self.x[westix]) / (self.x[eastix] - self.x[westix])
+            yratio = (targetys[targ] - self.y[southiy]) / (self.y[northiy] - self.y[southiy])
+
+            lowerresult = self.values[southiy, westix] + (self.values[southiy, eastix] - self.values[southiy, westix]) * xratio + (
+                        self.values[northiy, westix] - self.values[southiy, westix]) * yratio + (
+                                      self.values[northiy, eastix] - self.values[northiy, westix] - self.values[southiy, eastix] +
+                                      self.values[southiy, westix]) * xratio * yratio
+            upperresult = self.values[southiy, westix] + (self.values[southiy, eastix] - self.values[southiy, westix]) * xratio + (
+                        self.values[northiy, westix] - self.values[southiy, westix]) * yratio + (
+                                      self.values[northiy, eastix] - self.values[northiy, westix] - self.values[southiy, eastix] +
+                                      self.values[southiy, westix]) * xratio * yratio
+
+            result[targ] = lowerresult + (upperresult - lowerresult)
+
+        return result
+
 def compute_fluxes(
         light_curve,
         ncells,
@@ -137,6 +174,7 @@ def compute_fluxes(
         Rs,
         Gammas,
         spectra,
+        spectra_obj,
         timegrid,
         alpha_obs,
         freq_z,
@@ -170,92 +208,20 @@ def compute_fluxes(
         # delta_D = get_delta_D(Gamma_obs, calpha)
         freqprime = freq_z * delta_D
 
-        fluxprime = interp2d(freq_to_integrate, Rs[il, :], spectra[il], freqprime, r_obs)
+        # --- Non class interpolation Jit
+        # fluxprime = interp2d(freq_to_integrate, Rs[il, :], spectra[il], freqprime, r_obs)
+        # --- Class implementation with Jit
+        # fluxprime = spectra[il].evaluate(r_obs, freqprime)
+        # --- scipi RegularGrid interpolator
+
         # fluxprime = self.int_data["pprime"][il].compute(freqprime, r_obs)
-        layer_eats_flux = fluxprime * np.power(delta_D, -3)
+        layer_eats_flux = spectra_obj[il]((r_obs, freqprime)) * np.power(delta_D, -3)
         light_curve[aval_times, il] = light_curve[aval_times, il] + layer_eats_flux
 
         # del layer_eats_flux
         # gc.collect()
 
     # return light_curve
-# @jitclass(spec)
-class VectorizedBilinearInterpolator:
-    def __init__(self, x0, y0, z0):
-        """Create a bilinear interpolator for gridded input data
-
-        Inputs:
-            x0: shape (ngridx,)
-            y0: shape (ngridy,)
-            z0: shape batch_shape + (ngridy, ngridx) (viewed as batches)
-        """
-
-        if z0.shape[-2:] != y0.shape + x0.shape:
-            raise ValueError("The last two dimensions of z0 must match that of y0 and x0, respectively!")
-
-        ind_x = np.argsort(x0)
-        self.x0 = x0[ind_x]
-
-        ind_y = np.argsort(y0)
-        self.y0 = y0[ind_y]
-
-        self.batch_shape = z0.shape[:-2]
-        indexer = np.ix_(ind_y, ind_x)
-        self.z0 = z0[..., indexer[0], indexer[1]].reshape(-1, y0.size, x0.size)  # shape (nbatch, ngridy, ngridx)
-
-        # compute auxiliary coefficients for interpolation
-        # we have ngridx-1 boxes along x and ngridy-1 boxes along y
-        # for each box we need 4 coefficients for bilinear interpolation
-        # see e.g. https://en.wikipedia.org/wiki/Bilinear_interpolation#Alternative_algorithm
-        # construct a batch of matrices with size (ngridy-1, ngridx-1, 4, 4) to invert
-        x1 = self.x0[:-1]
-        x2 = self.x0[1:]
-        y1 = self.y0[:-1, None]
-        y2 = self.y0[1:, None]
-        x1,x2,y1,y2,one = np.broadcast_arrays(x1, x2, y1, y2, 1)  # all shaped (ngridy-1, ngridx-1)
-
-        M = np.array([[one, x1, y1, x1*y1], [one, x1, y2, x1*y2],
-                      [one, x2, y1, x2*y1], [one, x2, y2, x2*y2]]).transpose((2, 3, 0, 1))  # shape (ngridy-1, ngridx-1, 4, 4)
-        zvec = np.array([self.z0[:, :-1, :-1], self.z0[:, 1:, :-1], self.z0[:, :-1, 1:], self.z0[:, 1:, 1:]])  # shape (4, nbatch, ngridy-1, ngridx-1)
-
-        self.coeffs = np.einsum('yxab,bnyx -> nyxa', np.linalg.inv(M), zvec)  # shape (nbatch, ngridy-1, ngridx-1, 4) for "a0,a1,a2,a3" coefficients
-        # for a given box (i,j) the interpolated value is given by self.coeffs[:,i,j,:] @ [1, x, y, x*y]
-
-
-
-    def __call__(self, x, y):
-        """Evaluate the interpolator at the given coordinates
-
-        Inputs:
-            x: shape (noutx,)
-            y: shape (nouty,)
-
-        Output:
-            z: shape batch_shape + (nouty, noutx) (see __init__)
-        """
-
-        # identify outliers (and mask at the end)
-        out_x = (x < self.x0[0]) | (self.x0[-1] < x)
-        out_y = (y < self.y0[0]) | (self.y0[-1] < y)
-
-        # clip outliers, mask later
-        xbox = (self.x0.searchsorted(x) - 1).clip(0, self.x0.size - 2)  # shape (noutx,) indices
-        ybox = (self.y0.searchsorted(y) - 1).clip(0, self.y0.size - 2)  # shape (nouty,) indices
-        indexer = np.ix_(ybox, xbox)
-
-        xgrid,ygrid = np.meshgrid(x, y)  # both shape (nouty, noutx)
-
-        coeffs_now = self.coeffs[:, indexer[0], indexer[1], :]  # shape (nbatch, nouty, noutx, 4)
-        poly = np.array([np.ones_like(xgrid), xgrid, ygrid, xgrid*ygrid])  # shape (4, nouty, noutx)
-        values =  np.einsum('nyxa,ayx -> nyx', coeffs_now, poly)  # shape (nbatch, nouty, noutx)
-
-        # reshape final result and mask outliers
-        z = values.reshape(self.batch_shape + xgrid.shape)
-        z[..., out_y, :] = np.nan
-        z[..., :, out_x] = np.nan
-
-        return z
-
 
 class EATS_StructuredLayersSource_Jit:
 
@@ -289,14 +255,19 @@ class EATS_StructuredLayersSource_Jit:
         self.cthetas0 = np.array([ctheta[0] for ctheta in cthetas])
         self.Gammas = Gammas
         self.spectra = []
+        self.spectra_obj = []
 
         self.int_data = {
             "Gamma": [], "beta": [], "cthetas": [], "TTs": [], "pprime": [], "thickness": []
         }
 
         for ii in range(self.nlayers):
-            # print(ii)
             self.spectra.append(np.vstack((spectra[ii])))
+            # self.spectra_obj.append(Interp2D(Rs[ii], freq_to_integrate, spectra[ii]))
+            self.spectra_obj.append(RegularGridInterpolator(
+                (Rs[ii], freq_to_integrate), np.vstack((spectra[ii])))
+            )
+
         #     self.int_data["Gamma"].append(interp1d(Rs[ii], Gammas[ii], kind="linear", copy=False))
         #     self.int_data["beta"].append(interp1d(Rs[ii], betas[ii], kind="linear", copy=False))
         #     self.int_data["cthetas"].append(interp1d(Rs[ii], cthetas[ii], kind="linear", copy=False))
@@ -412,83 +383,28 @@ class EATS_StructuredLayersSource_Jit:
         obs_calphas = np.zeros(self.ncells)
         obs_betas = np.zeros(self.ncells)
 
-        for ii in tqdm(range(self.ncells)):
+        for ii in range(self.ncells):
             layer = self.layer[ii] - 1
             phi_cell = self.cphis[ii]
             ctheta_cell = self.cthetas[layer][0]  # initial value
 
             obs_calphas[ii] = obsangle_func(ctheta_cell, phi_cell, alpha_obs)
             ttobs = self.tts[layer] + self.Rs[layer] / cgs.c * (1. - obs_calphas[ii])
-            Rint = interpolate.interp1d(ttobs, self.Rs[layer])
-
-            obs_Rs[ii] = Rint(time)
-            obs_gams[ii] = self.int_data["Gamma"][layer](obs_Rs[ii])
-            obs_thetas[ii] = self.int_data["cthetas"][layer](obs_Rs[ii])
+            # Rint = interpolate.interp1d(ttobs, self.Rs[layer])
+            obs_Rs[ii] = np.interp(time, ttobs, self.Rs[layer])
+            # obs_Rs[ii] = Rint(time)
+            obs_gams[ii] = np.interp(obs_Rs[ii], self.Rs[layer], self.Gammas[layer]) #self.int_data["Gamma"][layer](obs_Rs[ii])
+            obs_thetas[ii] = np.interp(obs_Rs[ii], self.Rs[layer], self.cthetas[layer]) #self.int_data["cthetas"][layer](obs_Rs[ii])
 
             obs_betas[ii] = np.sqrt(1. - np.power(obs_gams[ii], -2))
             delta_D = obs_gams[ii] * (1. - obs_betas[ii] * obs_calphas[ii])
 
             freqprime = (1. + z) * freq * delta_D
-            fluxprime = self.int_data["pprime"][layer]((obs_Rs[ii], freqprime))
+            # fluxprime = self.int_data["pprime"][layer]((obs_Rs[ii], freqprime))
+            fluxprime = self.spectra_obj[layer]((obs_Rs[ii], freqprime))
             fluxes[ii] = fluxprime * np.power(delta_D, -3)
 
         return (fluxes, obs_Rs, obs_thetas, obs_gams, obs_betas, obs_calphas)
-
-    def _loop_for_lightcurve(self, jet, alpha_obs, timegrid, freq_z):
-
-        light_curve = np.zeros([len(timegrid), self.nlayers])
-
-        if jet == 'principle': obsangle_func = obsangle
-        elif jet == 'counter': obsangle_func = obsangle_cj
-        else: raise NameError("Jet type is not recognized")
-
-        for ii in range(self.ncells):#tqdm(range(self.ncells)):
-            i_layer = self.layer[ii] - 1
-            # phi coordinate point of the cell
-            phi_cell = self.cphis[ii]
-
-            # theta coordiantes of the cell
-            theta_cellR = self.cthetas0[i_layer] # Value! -> ARRAY [Gavin suggested use 0]
-            # theta_cellR = self.cthetas[i_layer][:]
-            # calphaR = np.zeros_like(theta_cellR)
-
-            calphaR = obsangle_func(theta_cellR, phi_cell, alpha_obs)  # 0. for forward jet
-
-            # observer times during which radiation from 'phi, theta[]' elements arrive
-            ttobs = self.tts[i_layer] + self.Rs[i_layer] / cgs.c * (1. - calphaR)  # arr
-            # part of the 'emssion' observer time that falls within observation window
-            aval_times = (np.min(ttobs) < timegrid) & (timegrid <= np.max(ttobs))
-            # Radii values of elements emission from which is visible at 'ttobs'
-            r_obs = np.interp(timegrid[aval_times], ttobs, self.Rs[i_layer])#, copy=False)
-            #r_obs = Rint(timegrid[aval_times])  #
-            # Quantities visible at ttobs when rad. emitted at r_obs of the jet reaches observer
-            # Gamma_obs = self.int_data["Gamma"][i_layer](r_obs)
-            # beta_obs = self.int_data["beta"][i_layer](r_obs)
-
-            Gamma_obs = np.interp(r_obs, self.Rs[i_layer], self.Gammas[i_layer])
-            # beta_obs = np.sqrt(1. - np.power(Gamma_obs, -2))
-
-            # theta_obs = self.cthetas0[i_layer] # self.int_data["cthetas"][i_layer](r_obs) [Gavin suggested to use 0]
-            # theta_obs = self.int_data["cthetas"][i_layer](r_obs)
-            calpha = calphaR#obsangle_func(theta_obs, phi_cell, alpha_obs)  # 0. for forward
-
-            # doppler factor
-            # delta_D =  Gamma_obs * (1. - beta_obs * calpha) # (1. - beta_obs) / (1. - beta_obs * calpha)
-            delta_D = get_delta_D(Gamma_obs, calpha)
-            # frequency in the comoving frame
-            freqprime = freq_z * delta_D
-            # flux in the comoving frame
-            # fluxprime = interpolate_flux(self.int_data["pprime"][i_layer], freqprime, r_obs)
-
-            # fluxprime = numbaInterp(freq_to_integrate, self.Rs[i_layer], self.spectra[i_layer], freqprime, r_obs)
-            fluxprime = self.int_data["pprime"][i_layer].compute(freqprime, r_obs)
-
-            # part of the flux visible at times 'timegrid' from layer 'i_layer'
-            layer_eats_flux = fluxprime * np.power(delta_D, -3)
-            #
-            light_curve[aval_times, i_layer] = light_curve[aval_times, i_layer] + layer_eats_flux
-
-        return light_curve
 
     def lightcurve(self, alpha_obs, timegrid, freq, z, d_l, jet='principle'):
 
@@ -524,6 +440,7 @@ class EATS_StructuredLayersSource_Jit:
             np.vstack(self.Rs),
             np.vstack(self.Gammas),
             self.spectra,
+            self.spectra_obj,
             timegrid,
             alpha_obs,
             freq_z,
@@ -664,62 +581,108 @@ class EATS_StructuredLayersSource_Jit:
 
 
 
+""" ----------- do be discarded ---------------- """
 
 
-spec = [
-    ('x', double[:]),               # a simple scalar field
-    ('y', double[:]),          # an array field
-    ('values', double[:,:]),          # an array field
-]
-@jitclass(spec)
-class Interp2D:
-    def __init__(self, x, y, values):
-        self.x = x
-        self.y = y
-        self.values = values
 
 
-    def compute(self, targetxs, targetys):
 
-        nx = len(self.x)
-        ny = len(self.y)
+# @numba.njit("double[:](double[:])")
+# def get_beta(Gamma):
+#     return np.sqrt(1. - np.power(Gamma, -2))
 
-        ntarget = targetxs.shape[0]
+# @numba.njit("double[:](double[:], double)")
+# def get_delta_D(Gamma_obs, calpha):
+#     beta_obs = np.sqrt(1. - np.power(Gamma_obs, -2))
+#     delta_D = Gamma_obs * (1. - beta_obs * calpha)
+#     return delta_D
 
-        result = np.zeros((ntarget,))
+# @numba.njit()
+def interpolate_flux(interpolator, freqprime, radii):
+    freqsprime = np.full_like(radii, freqprime)
+    power = interpolator((radii, freqsprime))
+    return power  # np.power(10., power)
 
-        for targ in range(ntarget):
-            westix = len(self.x) - 2
-            eastix = len(self.x) - 1
-            for ix in range(1, nx):
-                if targetxs[targ] <= self.x[ix]:
-                    westix = ix - 1
-                    eastix = ix
-                    break
 
-            southiy = len(self.y) - 2
-            northiy = len(self.y) - 1
-            for iy in range(1, ny):
-                if targetys[targ] <= self.y[iy]:
-                    southiy = iy - 1
-                    northiy = iy
-                    break
 
-            xratio = (targetxs[targ] - self.x[westix]) / (self.x[eastix] - self.x[westix])
-            yratio = (targetys[targ] - self.y[southiy]) / (self.y[northiy] - self.y[southiy])
+# @jitclass(spec)
+class VectorizedBilinearInterpolator:
 
-            lowerresult = self.values[southiy, westix] + (self.values[southiy, eastix] - self.values[southiy, westix]) * xratio + (
-                        self.values[northiy, westix] - self.values[southiy, westix]) * yratio + (
-                                      self.values[northiy, eastix] - self.values[northiy, westix] - self.values[southiy, eastix] +
-                                      self.values[southiy, westix]) * xratio * yratio
-            upperresult = self.values[southiy, westix] + (self.values[southiy, eastix] - self.values[southiy, westix]) * xratio + (
-                        self.values[northiy, westix] - self.values[southiy, westix]) * yratio + (
-                                      self.values[northiy, eastix] - self.values[northiy, westix] - self.values[southiy, eastix] +
-                                      self.values[southiy, westix]) * xratio * yratio
+    def __init__(self, x0, y0, z0):
+        """Create a bilinear interpolator for gridded input data
 
-            result[targ] = lowerresult + (upperresult - lowerresult)
+        Inputs:
+            x0: shape (ngridx,)
+            y0: shape (ngridy,)
+            z0: shape batch_shape + (ngridy, ngridx) (viewed as batches)
+        """
 
-        return result
+        if z0.shape[-2:] != y0.shape + x0.shape:
+            raise ValueError("The last two dimensions of z0 must match that of y0 and x0, respectively!")
+
+        ind_x = np.argsort(x0)
+        self.x0 = x0[ind_x]
+
+        ind_y = np.argsort(y0)
+        self.y0 = y0[ind_y]
+
+        self.batch_shape = z0.shape[:-2]
+        indexer = np.ix_(ind_y, ind_x)
+        self.z0 = z0[..., indexer[0], indexer[1]].reshape(-1, y0.size, x0.size)  # shape (nbatch, ngridy, ngridx)
+
+        # compute auxiliary coefficients for interpolation
+        # we have ngridx-1 boxes along x and ngridy-1 boxes along y
+        # for each box we need 4 coefficients for bilinear interpolation
+        # see e.g. https://en.wikipedia.org/wiki/Bilinear_interpolation#Alternative_algorithm
+        # construct a batch of matrices with size (ngridy-1, ngridx-1, 4, 4) to invert
+        x1 = self.x0[:-1]
+        x2 = self.x0[1:]
+        y1 = self.y0[:-1, None]
+        y2 = self.y0[1:, None]
+        x1,x2,y1,y2,one = np.broadcast_arrays(x1, x2, y1, y2, 1)  # all shaped (ngridy-1, ngridx-1)
+
+        M = np.array([[one, x1, y1, x1*y1], [one, x1, y2, x1*y2],
+                      [one, x2, y1, x2*y1], [one, x2, y2, x2*y2]]).transpose((2, 3, 0, 1))  # shape (ngridy-1, ngridx-1, 4, 4)
+        zvec = np.array([self.z0[:, :-1, :-1], self.z0[:, 1:, :-1], self.z0[:, :-1, 1:], self.z0[:, 1:, 1:]])  # shape (4, nbatch, ngridy-1, ngridx-1)
+
+        self.coeffs = np.einsum('yxab,bnyx -> nyxa', np.linalg.inv(M), zvec)  # shape (nbatch, ngridy-1, ngridx-1, 4) for "a0,a1,a2,a3" coefficients
+        # for a given box (i,j) the interpolated value is given by self.coeffs[:,i,j,:] @ [1, x, y, x*y]
+
+    def __call__(self, x, y):
+        """Evaluate the interpolator at the given coordinates
+
+        Inputs:
+            x: shape (noutx,)
+            y: shape (nouty,)
+
+        Output:
+            z: shape batch_shape + (nouty, noutx) (see __init__)
+        """
+
+        # identify outliers (and mask at the end)
+        out_x = (x < self.x0[0]) | (self.x0[-1] < x)
+        out_y = (y < self.y0[0]) | (self.y0[-1] < y)
+
+        # clip outliers, mask later
+        xbox = (self.x0.searchsorted(x) - 1).clip(0, self.x0.size - 2)  # shape (noutx,) indices
+        ybox = (self.y0.searchsorted(y) - 1).clip(0, self.y0.size - 2)  # shape (nouty,) indices
+        indexer = np.ix_(ybox, xbox)
+
+        xgrid,ygrid = np.meshgrid(x, y)  # both shape (nouty, noutx)
+
+        coeffs_now = self.coeffs[:, indexer[0], indexer[1], :]  # shape (nbatch, nouty, noutx, 4)
+        poly = np.array([np.ones_like(xgrid), xgrid, ygrid, xgrid*ygrid])  # shape (4, nouty, noutx)
+        values =  np.einsum('nyxa,ayx -> nyx', coeffs_now, poly)  # shape (nbatch, nouty, noutx)
+
+        # reshape final result and mask outliers
+        z = values.reshape(self.batch_shape + xgrid.shape)
+        z[..., out_y, :] = np.nan
+        z[..., :, out_x] = np.nan
+
+        return z
+
+
+
 
 
 @numba.njit()#(parallel=True)
