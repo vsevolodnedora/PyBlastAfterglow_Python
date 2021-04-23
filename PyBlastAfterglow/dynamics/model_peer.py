@@ -147,29 +147,29 @@ class Driver_Peer_FS(Driver):
         dtypes = []
         for v_n in all_v_ns:
             dtypes.append((v_n, 'f8'))
-        dynamics = np.zeros(len(r_grid), dtype=dtypes)
+        vals = np.zeros(len(r_grid), dtype=dtypes)
 
         # filling initial data
-        dynamics['tburst'][0] = Rstart / (beta0 * cgs.c)
-        dynamics['tcomoving'][0] = Rstart / (beta0 * Gamma0 * cgs.c)
-        dynamics['Gamma'][0] = Gamma0
-        dynamics['theta'][0] = theta0
-        dynamics['M2'][0] = m20 / M0
+        vals['tburst'][0] = Rstart / (beta0 * cgs.c)
+        vals['tcomoving'][0] = Rstart / (beta0 * Gamma0 * cgs.c)
+        vals['Gamma'][0] = Gamma0
+        vals['theta'][0] = theta0
+        vals['M2'][0] = m20 / M0
 
         # filling non-ODE initial values
-        dynamics['rho'][0] = rho0
-        dynamics['tt'][0] = self.init_elapsed_time(Rstart, beta0, Gamma0, kwargs['useSpread']) # tt0
-        dynamics['R'][0] = Rstart
-        dynamics['thickness'][0] = 0.
-        dynamics['beta'][0] = beta0
-        dynamics['gammaAdi'][0] = gammaAdi0
-        dynamics['rho2'][0] = eq_rho2(Gamma0, beta0, rho0, gammaAdi0)
-        dynamics['U_e'][0] = get_U_e(Gamma0, rho0)#self.get_U_e(idx=0)
+        vals['rho'][0] = rho0
+        vals['tt'][0] = self.init_elapsed_time(Rstart, beta0, Gamma0, kwargs['useSpread']) # tt0
+        vals['R'][0] = Rstart
+        vals['thickness'][0] = 0.
+        vals['beta'][0] = beta0
+        vals['gammaAdi'][0] = gammaAdi0
+        vals['rho2'][0] = eq_rho2(Gamma0, beta0, rho0, gammaAdi0)
+        vals['U_e'][0] = get_U_e(Gamma0, rho0)#self.get_U_e(idx=0)
 
         # Rescale the values to 'cgs'
-        # self.dynamics[0, :] = self.apply_units(self.dynamics[0, :])
+        # self.vals[0, :] = self.apply_units(self.vals[0, :])
 
-        super(Driver_Peer_FS, self).__init__(r_grid, rhs, dynamics, pars_ode_rhs, init_v_ns, all_v_ns, **kwargs)
+        super(Driver_Peer_FS, self).__init__(r_grid, rhs, vals, pars_ode_rhs, init_v_ns, all_v_ns, **kwargs)
 
         #
         #
@@ -202,12 +202,12 @@ class Driver_Peer_FS(Driver):
         # gammaAdi0 = kwargs["eq_gammaAdi"](Gamma0, beta0)
         # rho20 = kwargs["eq_rhoprime"](Gamma0, beta0, rho0, gammaAdi0)  # self.get_rhoprime(rho0, Gamma0)
         # self.all_v_ns = self.v_ns_init_vals + ["rho", "tt", "R", "thickness", "U_e", "beta", "rho2", "gammaAdi"]
-        # self.dynamics = np.zeros((1, len(self.all_v_ns)))
-        # self.dynamics[0, :len(self.initial_data)] = self.initial_data
-        # self.dynamics[0, len(self.initial_data):] = np.array([rho0, tt0, Rstart, 0., 0., beta0, rho20, gammaAdi0])
-        # self.dynamics[0, self.i_nv("U_e")] = self.get_U_e(idx=0)
-        # self.dynamics[0] = self.apply_units(self.dynamics[0])
-        # # self.dynamics = np.hstack((self.apply_units(np.copy(self.initial_data)),
+        # self.vals = np.zeros((1, len(self.all_v_ns)))
+        # self.vals[0, :len(self.initial_data)] = self.initial_data
+        # self.vals[0, len(self.initial_data):] = np.array([rho0, tt0, Rstart, 0., 0., beta0, rho20, gammaAdi0])
+        # self.vals[0, self.i_nv("U_e")] = self.get_U_e(idx=0)
+        # self.vals[0] = self.apply_units(self.vals[0])
+        # # self.vals = np.hstack((self.apply_units(np.copy(self.initial_data)),
         # #                            np.array([rho0, tt0, Rstart, 0., 0., beta0])))
         #
         # # set the RHS
@@ -218,8 +218,8 @@ class Driver_Peer_FS(Driver):
         # super(Driver_Peer_FS, self).__init__(Rstart, kwargs["ode_rtol"], kwargs["ode_nsteps"])
 
     def get_U_e(self, idx=-1):
-        return get_U_e(self.dynamics["Gamma"][idx],
-                       self.dynamics["rho"][idx])
+        return get_U_e(self.vals["Gamma"][idx],
+                       self.vals["rho"][idx])
 
         # Gamma = self.get("Gamma")[idx]
         # rho = self.get("rho")[idx]
@@ -238,7 +238,7 @@ class Driver_Peer_FS(Driver):
         # return U_e
 
     def apply_units(self, idx):
-        self.dynamics["M2"][idx] *= self.pars_ode_rhs["M0"]
+        self.vals["M2"][idx] *= self.pars_ode_rhs["M0"]
 
 
 if __name__ == '__main__':
@@ -269,7 +269,7 @@ if __name__ == '__main__':
         o.evolove(RR[i],rho, dlnrho1dR)
 
     import matplotlib.pyplot as plt
-    plt.semilogx(o.dynamics["R"], o.dynamics["Gamma"], label="P")
+    plt.semilogx(o.vals["R"], o.vals["Gamma"], label="P")
     # plt.loglog(dyn2.get("R"), dyn2.get("Gamma"), label="N1")
     # plt.loglog(dyn3.get("R"), dyn3.get("Gamma"), label="N2")
     plt.legend()

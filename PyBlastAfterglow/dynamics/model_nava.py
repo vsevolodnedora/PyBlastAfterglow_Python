@@ -243,39 +243,40 @@ class Driver_Nava_FS(Driver):
         #     "thetaMax": kwargs["thetaMax"]
         # }
 
-        init_v_ns = ["tburst", "tcomoving", "Gamma", "Eint2", "theta", "Erad2", "Esh2", "Ead2", "M2"]
-        all_v_ns = init_v_ns + ["rho", "tt", "R", "thickness", "U_e", "beta", "rho2", "gammaAdi"]
+        init_v_ns = ["tburst", "tcomoving", "Gamma", "Eint2", "theta", "Erad2", "Esh2", "Ead2", "M2"] # For ODE
+        all_v_ns = init_v_ns + ["rho", "tt", "R", "thickness", "U_e", "beta", "rho2", "gammaAdi"] # all
         # storage for solutions
         dtypes = []
         for v_n in all_v_ns:
             dtypes.append((v_n, 'f8'))
-        dynamics = np.zeros(len(r_grid), dtype=dtypes)
+        vals = np.zeros(len(r_grid), dtype=dtypes)
 
         # filling initial data
-        dynamics['tburst'][0] = Rstart / (beta0 * cgs.c)  # 0
-        dynamics['tcomoving'][0] = Rstart / (beta0 * Gamma0 * cgs.c)  # 1
-        dynamics['Gamma'][0] = Gamma0
-        dynamics['Eint2'][0] = (Gamma0 - 1) * M20 / M0
-        dynamics['theta'][0] = theta0
-        dynamics['Erad2'][0] = 0.
-        dynamics['Esh2'][0] = 0.
-        dynamics['Ead2'][0] = 0.
-        dynamics['M2'][0] = M20 / M0
+        vals['tburst'][0] = Rstart / (beta0 * cgs.c)  # 0
+        vals['tcomoving'][0] = Rstart / (beta0 * Gamma0 * cgs.c)  # 1
+        vals['Gamma'][0] = Gamma0
+        vals['Eint2'][0] = (Gamma0 - 1) * M20 / M0
+        vals['theta'][0] = theta0
+        vals['Erad2'][0] = 0.
+        vals['Esh2'][0] = 0.
+        vals['Ead2'][0] = 0.
+        vals['M2'][0] = M20 / M0
 
         # filling non-ODE initial values
-        dynamics['rho'][0] = rho0
-        dynamics['tt'][0] = self.init_elapsed_time(Rstart, beta0, Gamma0, kwargs['useSpread'])  # tt0
-        dynamics['R'][0] = Rstart
-        dynamics['thickness'][0] = 0.
-        dynamics['beta'][0] = beta0
-        dynamics['gammaAdi'][0] = gammaAdi0
-        dynamics['rho2'][0] = eq_rho2(Gamma0, beta0, rho0, gammaAdi0)
-        dynamics['U_e'][0] = get_U_e(rho0, Gamma0, M20 / M0, (Gamma0 - 1) * M20 / M0)  # self.get_U_e(idx=0)
+        vals['rho'][0] = rho0
+        vals['tt'][0] = self.init_elapsed_time(Rstart, beta0, Gamma0, kwargs['useSpread'])  # tt0
+        vals['R'][0] = Rstart
+        vals['thickness'][0] = 0.
+        vals['beta'][0] = beta0
+        vals['gammaAdi'][0] = gammaAdi0
+        vals['rho2'][0] = eq_rho2(Gamma0, beta0, rho0, gammaAdi0)
+        vals['U_e'][0] = get_U_e(rho0, Gamma0, M20 / M0, (Gamma0 - 1) * M20 / M0) * cgs.c**2 # get_U_e(rho0, Gamma0, M20 / M0, (Gamma0 - 1) * M20 / M0)
+            # get_U_e(rho0, Gamma0, M20 / M0, (Gamma0 - 1) * M20) * cgs.c ** 2  # self.get_U_e(idx=0)
 
         # Rescale the values to 'cgs'
-        # self.dynamics[0, :] = self.apply_units(self.dynamics[0, :])
+        # self.vals[0, :] = self.apply_units(self.vals[0, :])
 
-        super(Driver_Nava_FS, self).__init__(r_grid, rhs, dynamics, pars_ode_rhs, init_v_ns, all_v_ns, **kwargs)
+        super(Driver_Nava_FS, self).__init__(r_grid, rhs, vals, pars_ode_rhs, init_v_ns, all_v_ns, **kwargs)
 
 
         # assert (not M0 is None)
@@ -318,12 +319,12 @@ class Driver_Nava_FS(Driver):
         # gammaAdi0 = kwargs["eq_gammaAdi"](Gamma0, beta0)
         # rho20 = kwargs["eq_rhoprime"](Gamma0, beta0, rho0, gammaAdi0)#self.get_rhoprime(rho0, Gamma0)
         # self.all_v_ns = self.v_ns_init_vals + ["rho", "tt", "R", "thickness", "U_e", "beta", "rho2", "gammaAdi"]
-        # self.dynamics = np.zeros((1, len(self.all_v_ns)))
-        # self.dynamics[0, :len(self.initial_data)] = self.initial_data
-        # self.dynamics[0, len(self.initial_data):] = np.array([rho0, tt0, Rstart, 0., 0., beta0, rho20, gammaAdi0])
-        # self.dynamics[0, self.i_nv("U_e")] = self.get_U_e(idx=0) * cgs.c**2
-        # self.dynamics[0] = self.apply_units(self.dynamics[0])
-        # # self.dynamics = np.hstack((self.apply_units(np.copy(self.initial_data)),
+        # self.vals = np.zeros((1, len(self.all_v_ns)))
+        # self.vals[0, :len(self.initial_data)] = self.initial_data
+        # self.vals[0, len(self.initial_data):] = np.array([rho0, tt0, Rstart, 0., 0., beta0, rho20, gammaAdi0])
+        # self.vals[0, self.i_nv("U_e")] = self.get_U_e(idx=0) * cgs.c**2
+        # self.vals[0] = self.apply_units(self.vals[0])
+        # # self.vals = np.hstack((self.apply_units(np.copy(self.initial_data)),
         # #                            np.array([rho0, tt0, Rstart, 0., 0., beta0])))
         #
         # self.rhs = Nava_fs_rhs()
@@ -334,10 +335,10 @@ class Driver_Nava_FS(Driver):
 
     def get_U_e(self, idx=-1):
 
-        return get_U_e(self.dynamics["rho"][idx],
-                       self.dynamics["Gamma"][idx],
-                       self.dynamics["M2"][idx],
-                       self.dynamics["Eint2"][idx])
+        return get_U_e(self.vals["rho"][idx],
+                       self.vals["Gamma"][idx],
+                       self.vals["M2"][idx],
+                       self.vals["Eint2"][idx])
 
 
         # rhoprim = 4. * rho * Gamma  # comoving density
@@ -348,11 +349,11 @@ class Driver_Nava_FS(Driver):
 
     def apply_units(self, idx):
 
-        self.dynamics["M2"][idx] *= self.pars_ode_rhs["M0"]
-        self.dynamics["Eint2"][idx] *= self.pars_ode_rhs["M0"] * cgs.c**2
-        self.dynamics["Erad2"][idx] *= self.pars_ode_rhs["M0"] * cgs.c**2
-        self.dynamics["Esh2"][idx] *= self.pars_ode_rhs["M0"] * cgs.c**2
-        self.dynamics["Ead2"][idx] *= self.pars_ode_rhs["M0"] * cgs.c**2
+        self.vals["M2"][idx] *= self.pars_ode_rhs["M0"]
+        self.vals["Eint2"][idx] *= self.pars_ode_rhs["M0"] * cgs.c**2
+        self.vals["Erad2"][idx] *= self.pars_ode_rhs["M0"] * cgs.c**2
+        self.vals["Esh2"][idx] *= self.pars_ode_rhs["M0"] * cgs.c**2
+        self.vals["Ead2"][idx] *= self.pars_ode_rhs["M0"] * cgs.c**2
 
         # self.units_dic = {
         #     "M2": M0,
@@ -398,7 +399,7 @@ if __name__ == '__main__':
         o.evolove(RR[i],rho, dlnrho1dR)
 
     import matplotlib.pyplot as plt
-    plt.semilogx(o.dynamics["R"], o.dynamics["Gamma"], label="P")
+    plt.semilogx(o.vals["R"], o.vals["Gamma"], label="P")
     # plt.loglog(dyn2.get("R"), dyn2.get("Gamma"), label="N1")
     # plt.loglog(dyn3.get("R"), dyn3.get("Gamma"), label="N2")
     plt.legend()

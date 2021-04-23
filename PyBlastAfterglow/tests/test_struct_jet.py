@@ -9,10 +9,10 @@ from matplotlib import cm
 from matplotlib.colors import Normalize, LogNorm
 from pathlib import Path
 
-from PyBlastAfterglow.dynamics import EqOpts, Driver_Nava_FS, Driver_Peer_FS
-from PyBlastAfterglow.electrons import Electron_BPL
-from PyBlastAfterglow.synchrotron import Synchrotron_Joh06, Synchrotron_WSPN99
-from PyBlastAfterglow.eats import EATS_StructuredLayersSource, generate_skyimage
+# from PyBlastAfterglow.dynamics import EqOpts, Driver_Nava_FS, Driver_Peer_FS
+# from PyBlastAfterglow.electrons import Electron_BPL
+# from PyBlastAfterglow.synchrotron import Synchrotron_Joh06, Synchrotron_WSPN99
+# from PyBlastAfterglow.eats import EATS_StructuredLayersSource, generate_skyimage
 from PyBlastAfterglow.wrapper import BlastWave
 
 package_dir = Path(__file__).parent.parent.parent
@@ -41,7 +41,7 @@ nlayers = 100
 
 def compare_jet_lightcurves(withSpread = False,
                             a = 1.,
-                            eq_dthetadr="dthetadr_None",
+                            eq_dthetadr="None",
                             thetaMax=np.pi/2.,
                             driver="Peer",
                             electrons="Electron_BPL",
@@ -69,14 +69,18 @@ def compare_jet_lightcurves(withSpread = False,
             theta0j=thetaW,
             r_pars=(8., 22., 1000),
             dens_pars=(n0, None, None, None, None),
-            driver=(driver, {"aa": a, "useSpread": withSpread, "epsilon_e_rad": 0, "adiabLoss": True,
-                           "eq_dthetadr": eq_dthetadr, "thetaMax": thetaMax,
-                           "eq_gammaAdi": "gamma_adi_peer", "eq_rhoprime": "rho2_transrel",
-                           "tprompt": 1e3, "epsilon_e_rad_RS": 0., "adiabLoss_RS": True,
-                           "ode_rtol": 1e-3, "ode_nsteps": 3000}),#Driver_Nava_FS,
+            driver=(driver, {"useSpread":withSpread, "aa":a, "ncells":1, "ode":'dop853',
+                             "ode_pars":{"rtol":1e-5, "nsteps":1000, "first_step": 'default'},
+                             "eq_delta":"default", "eq_dthetadr":eq_dthetadr, "eq_dmdr":"default", "eq_gammaAdi":"Nava",
+                             "eq_rho2":"rel", "thetaMax":thetaMax, "adiabLoss":True, "epsilon_e_rad":0.}),
+            # driver=(driver, {"aa": a, "useSpread": withSpread, "epsilon_e_rad": 0, "adiabLoss": True,
+            #                "eq_dthetadr": eq_dthetadr, "thetaMax": thetaMax,
+            #                "eq_gammaAdi": "gamma_adi_peer", "eq_rhoprime": "rho2_transrel",
+            #                "tprompt": 1e3, "epsilon_e_rad_RS": 0., "adiabLoss_RS": True,
+            #                "ode_rtol": 1e-3, "ode_nsteps": 3000}),#Driver_Nava_FS,
             electrons=(electrons, {"p": p, "eps_e": eps_e, "eps_b": eps_B}),
-            synchrotron=(synchrotron, {"ssa":ssa}),
-            eats=("EATS_StructuredLayersSource_Jit", {})
+            synchrotron=(synchrotron, {"ssa": ssa}),
+            eats=("EATS_StructuredLayersSource", {})
         )
 
         lightcurve = model.eats.lightcurve(i_thetaobs, t, i_freq, z, dL)
@@ -95,6 +99,7 @@ class TestStructJet():
 
         compare_jet_lightcurves(withSpread=False,
                                 a=-1.,
+                                eq_dthetadr="None",
                                 thetaMax=np.pi / 2.,
                                 driver="Peer",
                                 electrons="Electron_BPL",
@@ -104,6 +109,7 @@ class TestStructJet():
 
         compare_jet_lightcurves(withSpread=True,
                                 a=1.,
+                                eq_dthetadr="AA",
                                 thetaMax=np.pi / 2.,
                                 driver="Peer",
                                 electrons="Electron_BPL",

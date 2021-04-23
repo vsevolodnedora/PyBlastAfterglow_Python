@@ -2,7 +2,7 @@
 
 """
 
-from PyBlastAfterglow.dynamics.dynamics import rho_dlnrho1dR
+from PyBlastAfterglow.dynamics import rho_dlnrho1dR
 
 class Shell_FS:
     def __init__(
@@ -66,6 +66,7 @@ class Shell_FS_Electrons_Synchrotron:
         self.M0 = M0
         self.rho0, self.dlnrho1dR_0 = rho_dlnrho1dR(r_grid[0], *dens_pars)
         self.ncells = ncells
+        self.r_grid = r_grid
 
         # radiation [FS]
         self.spectrum = []
@@ -88,8 +89,8 @@ class Shell_FS_Electrons_Synchrotron:
             # print(self.dyn.get_last("M2") / 4 / np.pi)
             # print(self.dyn.get_last("thickness") * self.dyn.get_last("Gamma") * self.dyn.get_last("R")**2 * self.dyn.get_last("rho2"))
             # print('\n')
-            self.ele.compute_char_lfs_fs(self.dyn)
+            self.ele.compute_char_lfs_fs(r_grid[i], self.dyn)
 
-            rad = synchrotron.from_obj_fs(self.ele, self.dyn, **synchrotron_kwargs)
+            rad = synchrotron.from_obj_fs(r_grid[i], self.ele, self.dyn, **synchrotron_kwargs)
 
             self.spectrum.append(rad.get_spectrum())

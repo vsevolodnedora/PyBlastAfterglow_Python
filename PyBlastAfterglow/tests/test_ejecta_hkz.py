@@ -77,11 +77,16 @@ class EngineModel(object):
                  nlayers=None,
                  r_pars=(8., 22., 500),
                  dens_pars=(1e-1, None, None, None, None),
-                 driver=("Driver_Peer_FS", {"aa": -1, "useSpread": False, "epsilon_e_rad": 0, "adiabLoss": True,
-                                     "eq_dthetadr": "dthetadr_None", "thetaMax": np.pi / 2.,
-                                     "eq_gammaAdi": "gamma_adi_peer", "eq_rhoprime": "rho2_transrel",
-                                     "tprompt": 1e3, "epsilon_e_rad_RS": 0., "adiabLoss_RS": True,
-                                     "ode_rtol": 1e-3, "ode_nsteps": 3000, "ncells": 0}),
+                 # driver=("Driver_Peer_FS", {"aa": -1, "useSpread": False, "epsilon_e_rad": 0, "adiabLoss": True,
+                 #                     "eq_dthetadr": "dthetadr_None", "thetaMax": np.pi / 2.,
+                 #                     "eq_gammaAdi": "gamma_adi_peer", "eq_rhoprime": "rho2_transrel",
+                 #                     "tprompt": 1e3, "epsilon_e_rad_RS": 0., "adiabLoss_RS": True,
+                 #                     "ode_rtol": 1e-3, "ode_nsteps": 3000, "ncells": 0}),
+                 driver=("Peer", {"useSpread": False, "aa": -1, "ncells": 1, "ode": 'dop853',
+                                  "ode_pars": {"rtol": 1e-5, "nsteps": 1000, "first_step": 'default'},
+                                  "eq_delta": "default", "eq_dthetadr": "None", "eq_dmdr": "default",
+                                  "eq_gammaAdi": "Peer",
+                                  "eq_rho2": "transrel", "thetaMax": np.pi/2., "adiabLoss": True, "epsilon_e_rad": 0.}),
                  electrons=("Electron_BPL", {"p":2.5, "eps_e":1e-1, "eps_b":1e-1}),
                  synchrotron=("Synchrotron_Joh06", {"ssa": True}),
                  eats=("EATS_StructuredLayersSource", {}),
@@ -216,11 +221,16 @@ def compare1():
     nlayers = 30
     r_pars = (8., 22., 500)
     dens_pars = (1e-1, None, None, None, None)
-    driver = ("Peer", {"aa": -1, "useSpread": False, "epsilon_e_rad": 0, "adiabLoss": True,
-                               "eq_dthetadr": "dthetadr_None", "thetaMax": np.pi / 2.,
-                               "eq_gammaAdi": "gamma_adi_peer", "eq_rhoprime": "rho2_transrel",
-                               "tprompt": 1e3, "epsilon_e_rad_RS": 0., "adiabLoss_RS": True,
-                               "ode_rtol": 1e-3, "ode_nsteps": 3000, "ncells": 0})
+    # driver = ("Peer", {"aa": -1, "useSpread": False, "epsilon_e_rad": 0, "adiabLoss": True,
+    #                            "eq_dthetadr": "dthetadr_None", "thetaMax": np.pi / 2.,
+    #                            "eq_gammaAdi": "gamma_adi_peer", "eq_rhoprime": "rho2_transrel",
+    #                            "tprompt": 1e3, "epsilon_e_rad_RS": 0., "adiabLoss_RS": True,
+    #                            "ode_rtol": 1e-3, "ode_nsteps": 3000, "ncells": 0})
+    driver = ("Peer", {"useSpread": False, "aa": -1, "ncells": 1, "ode": 'dop853',
+                       "ode_pars": {"rtol": 1e-5, "nsteps": 1000, "first_step": 'default'},
+                       "eq_delta": "default", "eq_dthetadr": "None", "eq_dmdr": "default",
+                       "eq_gammaAdi": "Peer",
+                       "eq_rho2": "transrel", "thetaMax": np.pi / 2., "adiabLoss": True, "epsilon_e_rad": 0.})
     electrons = ("Electron_BPL", {"p": 2.5, "eps_e": 1e-1, "eps_b": 1e-1})
     synchrotron = ("Synchrotron_Joh06", {"ssa": True})
     eats = ("EATS_StructuredLayersSource", {})
@@ -382,11 +392,16 @@ def performance():
     nlayers = 30
     r_pars = (8., 22., 500)
     dens_pars = (1e-1, None, None, None, None)
-    driver = ("Peer", {"aa": -1, "useSpread": False, "epsilon_e_rad": 0, "adiabLoss": True,
-                       "eq_dthetadr": "dthetadr_None", "thetaMax": np.pi / 2.,
-                       "eq_gammaAdi": "gamma_adi_peer", "eq_rhoprime": "rho2_transrel",
-                       "tprompt": 1e3, "epsilon_e_rad_RS": 0., "adiabLoss_RS": True,
-                       "ode_rtol": 1e-3, "ode_nsteps": 3000, "ncells": 0})
+    # driver = ("Peer", {"aa": -1, "useSpread": False, "epsilon_e_rad": 0, "adiabLoss": True,
+    #                    "eq_dthetadr": "dthetadr_None", "thetaMax": np.pi / 2.,
+    #                    "eq_gammaAdi": "gamma_adi_peer", "eq_rhoprime": "rho2_transrel",
+    #                    "tprompt": 1e3, "epsilon_e_rad_RS": 0., "adiabLoss_RS": True,
+    #                    "ode_rtol": 1e-3, "ode_nsteps": 3000, "ncells": 0})
+    driver = ("Peer", {"useSpread": False, "aa": -1, "ncells": 1, "ode": 'dop853',
+                       "ode_pars": {"rtol": 1e-5, "nsteps": 1000, "first_step": 'default'},
+                       "eq_delta": "default", "eq_dthetadr": "None", "eq_dmdr": "default",
+                       "eq_gammaAdi": "Peer",
+                       "eq_rho2": "transrel", "thetaMax": np.pi / 2., "adiabLoss": True, "epsilon_e_rad": 0.})
     electrons = ("Electron_BPL", {"p": 2.5, "eps_e": 1e-1, "eps_b": 1e-1})
     synchrotron = ("Synchrotron_Joh06", {"ssa": True})
     eats = ("EATS_StructuredLayersSource_Jit", {})
@@ -557,5 +572,5 @@ def performance():
     plt.show()
 
 if __name__ == '__main__':
-    # compare1()
-    performance()
+    compare1()
+    #performance()

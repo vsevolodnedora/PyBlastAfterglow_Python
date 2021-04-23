@@ -10,8 +10,8 @@ from PyBlastAfterglow.uutils import cgs
 
 from PyBlastAfterglow.electrons import BrokenPowerLaw
 from PyBlastAfterglow.synchrotron import \
-    Synchrotron_Joh06, Synchrotron_WSPN99, Synchrotron_DM06, freq_to_integrate, PhiPint
-from PyBlastAfterglow.dynamics import Driver_Nava_FS, Driver_Peer_FS, EqOpts
+    (Synchrotron_Joh06, Synchrotron_WSPN99, Synchrotron_DM06, freq_to_integrate, PhiPint)
+# from PyBlastAfterglow.dynamics import (Driver_Nava_FS, Driver_Peer_FS)
 
 package_dir = Path(__file__).parent.parent.parent
 # where to read sampled files

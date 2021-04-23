@@ -5,6 +5,10 @@
 import numpy as np
 from PyBlastAfterglow.uutils import cgs
 
+def get_Gamma(beta):
+    return np.sqrt(1. / (1. - beta ** 2.))
+
+
 class GenAngStruct:
 
     def __init__(self):
@@ -151,7 +155,7 @@ class Structure_Angular(GenAngStruct):
 
         # generate initial azymuthal angles of the grid
         cthetas0 = cls._generate_grid_cthetas(nlayers, theta0)
-        Gamma = np.float64(np.sqrt(1. / (1. - np.float64(beta) ** 2.)))
+        Gamma = get_Gamma(beta)
         Ek /= ncells
         mass /= ncells
 

@@ -14,9 +14,11 @@ data_dir = f"{package_dir}/data"
 # where to save figures
 figures_dir = f"{data_dir}/crosscheck_figures/dynamics/"
 
-from PyBlastAfterglow.dynamics_jit import (Driver_Nava_FS,Driver_Nava_FSRS,Driver_Peer_FS)
-from PyBlastAfterglow.dynamics_jit import (get_beta,get_Rdec2,get_Rdec,get_sedovteylor,get_Gamma,evolove_driver,get_bm79)
+from PyBlastAfterglow.dynamics import Driver_Nava_FS, Driver_Nava_FSRS, Driver_Peer_FS, \
+    evolove_driver, get_Rdec2, get_bm79, get_sedovteylor, get_beta, get_Rdec, EqOpts
 from PyBlastAfterglow.uutils import cgs, find_nearest_index
+
+
 
 class TestDynWithRadLoss:
 
@@ -59,38 +61,20 @@ class TestDynWithRadLoss:
         #                          adiabaticLosses=True, aa=aa, radiativeLosses=True, remix_radloss=True, fixed_epsilon=False)
 
         o_nava_norad = evolove_driver(
-            driver=Driver_Nava_FS,
-            E0=E0,
-            Gamma0=Gamma0,
-            thetaE=0.,
-            theta0=theta0,
-            M0=None,
-            r_grid_pars=(),
+            driver=Driver_Nava_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
             r_grid=r_grid,
-            dens_pars=(nCM, None, None, None, None),
-            # kwargs
-            useSpread=False, aa=-1., ncells=1, ode='dop853',
-            ode_pars={"rtol": 1e-5, "nsteps": 1000, "first_step": Rstart},
-            eq_delta="default", eq_dthetadr="None", eq_dmdr="default", eq_gammaAdi="Nava", eq_rho2="rel",
-            thetaMax=np.pi / 2.,
-            adiabLoss=True, epsilon_e_rad=0.,
+            dens_pars=(nCM, None, None, None, None), aa=aa, useSpread=False, adiabLoss=True, ncells=1,
+            ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0.,
+            eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
+            eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
         )
         o_nava_rad1 = evolove_driver(
-            driver=Driver_Nava_FS,
-            E0=E0,
-            Gamma0=Gamma0,
-            thetaE=0.,
-            theta0=theta0,
-            M0=None,
-            r_grid_pars=(),
+            driver=Driver_Nava_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
             r_grid=r_grid,
-            dens_pars=(nCM, None, None, None, None),
-            # kwargs
-            useSpread=False, aa=-1., ncells=1, ode='dop853',
-            ode_pars={"rtol": 1e-5, "nsteps": 1000, "first_step": Rstart},
-            eq_delta="default", eq_dthetadr="None", eq_dmdr="default", eq_gammaAdi="Nava", eq_rho2="rel",
-            thetaMax=np.pi / 2.,
-            adiabLoss=True, epsilon_e_rad=1.,
+            dens_pars=(nCM, None, None, None, None), aa=aa, useSpread=False, adiabLoss=True, ncells=1,
+            ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=1.,
+            eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
+            eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
         )
         # o_nava_rad2 = evolove_driver(
         #     driver=NavaFS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(), r_grid=r_grid,
@@ -136,8 +120,8 @@ class TestDynWithRadLoss:
 
         # ax.plot(o_nava_nosp1.out_fs_arr["R"], o_nava_nosp1.out_fs_arr["Gamma"], color="black", ls='-')  # , label=r"$\Gamma$ [P]")
         # ax.plot(o_nava_nosp2.out_fs_arr["R"], o_nava_nosp2.out_fs_arr["Gamma"], color="gray", ls='-')  # , label=r"$\Gamma$ [P]")
-        ax.plot(o_nava_norad.dynamics["R"], o_nava_norad.dynamics["Gamma"], color="black", ls='-')  # , label=r"$\Gamma$ [N]")
-        ax.plot(o_nava_rad1.dynamics["R"], o_nava_rad1.dynamics["Gamma"], color="red", ls='-')  # , label=r"$\Gamma$ [N]")
+        ax.plot(o_nava_norad.get("R"), o_nava_norad.get("Gamma"), color="black", ls='-')  # , label=r"$\Gamma$ [N]")
+        ax.plot(o_nava_rad1.get("R"), o_nava_rad1.get("Gamma"), color="red", ls='-')  # , label=r"$\Gamma$ [N]")
         # ax.plot(o_nava_rad2.get("R"), o_nava_rad2.get("Gamma"), color="green", ls='-')
         # ax.plot(o_peer.out_fs_arr["R"], o_peer.out_fs_arr["Gamma"], color="gray", ls='-')#, label=r"$\Gamma$ [P]")
 
@@ -146,9 +130,9 @@ class TestDynWithRadLoss:
 
         # ax.plot(o_nava_nosp1.out_fs_arr["R"], Gamma0 * o_nava_nosp1.out_fs_arr["beta"], color="black", ls='--')#, label=r"$\Gamma_0 \beta$ [P]")
         # ax.plot(o_nava_nosp2.out_fs_arr["R"], Gamma0 * o_nava_nosp2.out_fs_arr["beta"], color="gray", ls='--')  # , label=r"$\Gamma_0 \beta$ [P]")
-        ax.plot(o_nava_norad.dynamics["R"], Gamma0 * o_nava_norad.dynamics["beta"], color="black",
+        ax.plot(o_nava_norad.get("R"), Gamma0 * o_nava_norad.get("beta"), color="black",
                 ls='--')  # , label=r"$\Gamma_0 \beta$ [N]")
-        ax.plot(o_nava_rad1.dynamics["R"], Gamma0 * o_nava_rad1.dynamics["beta"], color="red",
+        ax.plot(o_nava_rad1.get("R"), Gamma0 * o_nava_rad1.get("beta"), color="red",
                 ls='--')  # , label=r"$\Gamma_0 \beta$ [N]")
         # ax.plot(o_nava_rad2.get("R"), Gamma0 * o_nava_rad2.get("beta"), color="green", ls='--')
         # ax.plot(o_peer.out_fs_arr["R"], Gamma0 * o_peer.out_fs_arr["beta"], color="gray", ls='--')#, label=r"$\Gamma$ [P]")
@@ -238,58 +222,21 @@ class TestDynNonUniformCBM:
         aa = -1  # Sets some equtions
 
         o_nava_fs = evolove_driver(
-            driver=Driver_Nava_FS,
-            E0=E0,
-            Gamma0=Gamma0,
-            thetaE=0.,
-            theta0=theta0,
-            M0=None,
-            r_grid_pars=(),
+            driver=Driver_Nava_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
             r_grid=r_grid,
-            dens_pars=(nCM, None, None, None, None),
-            # kwargs
-            useSpread=False, aa=-1., ncells=1, ode='dop853',
-            ode_pars={"rtol": 1e-5, "nsteps": 1000, "first_step": Rstart},
-            eq_delta="default", eq_dthetadr="None", eq_dmdr="default", eq_gammaAdi="Nava", eq_rho2="rel",
-            thetaMax=np.pi / 2.,
-            adiabLoss=True, epsilon_e_rad=0.,
+            dens_pars=(nCM, None, None, None, None), aa=-1, useSpread=False, adiabLoss=True, ncells=1,
+            ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0., eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
+            eq_gammaAdi = EqOpts.gamma_adi_peer, eq_rhoprime = EqOpts.rho2_transrel
         )
 
         o_nava_rs = evolove_driver(
-            driver=Driver_Nava_FSRS,
-            E0=E0,
-            Gamma0=Gamma0,
-            thetaE=0.,
-            theta0=theta0,
-            M0=None,
-            r_grid_pars=(),
+            driver=Driver_Nava_FSRS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
             r_grid=r_grid,
-            dens_pars=(nCM, None, None, None, None),
-            # kwargs
-            useSpread=False, aa=-1., ncells=1, ode='dop853',
-            ode_pars={"rtol": 1e-8, "nsteps": 1000, "first_step": Rstart},
-            eq_delta="default", eq_dthetadr="None", eq_dmdr="default", eq_gammaAdi="Nava", eq_rho2="rel",
-            thetaMax=np.pi / 2.,
-            adiabLoss=True, epsilon_e_rad=0., tprompt=1e3, adiabLoss_RS=True, reverseShock=True,
-            epsilon_e_rad_RS=0.
+            dens_pars=(nCM, None, None, None, None), aa=-1, useSpread=False, adiabLoss=True, ncells=1,
+            ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0., reverseShock=True, adiabLoss_RS=True, tprompt=1e3,
+            epsilon_e_rad_RS=0., eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
+            eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
         )
-
-        # o_nava_fs = evolove_driver(
-        #     driver=Driver_Nava_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
-        #     r_grid=r_grid,
-        #     dens_pars=(nCM, None, None, None, None), aa=-1, useSpread=False, adiabLoss=True, ncells=1,
-        #     ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0., eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
-        #     eq_gammaAdi = EqOpts.gamma_adi_peer, eq_rhoprime = EqOpts.rho2_transrel
-        # )
-        #
-        # o_nava_rs = evolove_driver(
-        #     driver=Driver_Nava_FSRS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
-        #     r_grid=r_grid,
-        #     dens_pars=(nCM, None, None, None, None), aa=-1, useSpread=False, adiabLoss=True, ncells=1,
-        #     ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0., reverseShock=True, adiabLoss_RS=True, tprompt=1e3,
-        #     epsilon_e_rad_RS=0., eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
-        #     eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
-        # )
 
         # o_nava_rs = EvolveShellNava(E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None,
         #                           r_grid_pars=(Rstart, Rend, nR), r_grid=None, dens_pars=(nCM, None, None, None, None),
@@ -345,14 +292,14 @@ class TestDynNonUniformCBM:
         fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(6.2, 4.6), sharex="all")
         ip = 0
 
-        ax.plot(o_nava_fs.dynamics["R"], o_nava_fs.dynamics["Gamma"], color="green", ls='-', label=r"$\Gamma$ [FS]")
-        ax.plot(o_nava_rs.dynamics["R"], o_nava_rs.dynamics["Gamma"], color="red", ls='-', label=r"$\Gamma$ [FS & RS]")
+        ax.plot(o_nava_fs.get("R"), o_nava_fs.get("Gamma"), color="green", ls='-', label=r"$\Gamma$ [FS]")
+        ax.plot(o_nava_rs.get("R"), o_nava_rs.get("Gamma"), color="red", ls='-', label=r"$\Gamma$ [FS & RS]")
         # ax.plot(o_nava2.out_fs_arr["R"], o_nava2.out_fs_arr["Gamma"], color="blue", ls='-')#, label=r"$\Gamma$ [N]")
         # ax.plot(o_nava3.out_fs_arr["R"], o_nava3.out_fs_arr["Gamma"], color="red", ls='-')#, label=r"$\Gamma$ [N]")
 
-        ax.plot(o_nava_fs.dynamics["R"], Gamma0 * o_nava_fs.dynamics["beta"], color="green", ls='--',
+        ax.plot(o_nava_fs.get("R"), Gamma0 * o_nava_fs.get("beta"), color="green", ls='--',
                 label=r"$\Gamma_0 \beta$ [FS]")
-        ax.plot(o_nava_rs.dynamics["R"], Gamma0 * o_nava_rs.dynamics["beta"], color="red", ls='--',
+        ax.plot(o_nava_rs.get("R"), Gamma0 * o_nava_rs.get("beta"), color="red", ls='--',
                 label=r"$\Gamma_0 \beta$ [FS & RS]")
         # ax.plot(o_nava2.out_fs_arr["R"], Gamma0[1] * o_nava2.out_fs_arr["beta"], color="blue", ls='--')#, label=r"$\Gamma_0 \beta$ [N]")
         # ax.plot(o_nava3.out_fs_arr["R"], Gamma0[2] * o_nava3.out_fs_arr["beta"], color="red",ls='--')#, label=r"$\Gamma_0 \beta$ [N]")
@@ -380,8 +327,8 @@ class TestDynNonUniformCBM:
                 transform=ax.transAxes)
 
         ax2 = ax.twinx()
-        ax2.plot(o_nava_fs.dynamics["R"], o_nava_fs.dynamics["M2"], color="green", ls=':', label=r"$m_2$ [FS]")
-        ax2.plot(o_nava_rs.dynamics["R"], o_nava_rs.dynamics["M3"], color="red", ls=':', label=r"$m_3$ [RS]")
+        ax2.plot(o_nava_fs.get("R"), o_nava_fs.get("M2"), color="green", ls=':', label=r"$m_2$ [FS]")
+        ax2.plot(o_nava_rs.get("R"), o_nava_rs.get("M3"), color="red", ls=':', label=r"$m_3$ [RS]")
         # ax2.plot(o_nava2.out_fs_arr["R"], o_nava2.out_rs_arr["M3"], color="blue", ls=':')#, label=r"$\Gamma_0 \beta$ [N]")
         #  ax2.plot(o_nava3.out_fs_arr["R"], o_nava3.out_rs_arr["M3"], color="red", ls=':')#, label=r"$\Gamma_0 \beta$ [N]")
 
@@ -432,56 +379,20 @@ class TestDynNonUniformCBM:
 
         # --- run dynamics
         o_peer = evolove_driver(
-            driver=Driver_Peer_FS,
-            E0=E0,
-            Gamma0=Gamma0,
-            thetaE=0.,
-            theta0=theta0,
-            M0=None,
-            r_grid_pars=(),
+            driver=Driver_Peer_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
             r_grid=r_grid,
-            dens_pars=(None, A0, s, R_EJ, R_ISM),
-            # kwargs
-            useSpread=False, aa=-1., ncells=1, ode='dop853',
-            ode_pars={"rtol": 1e-5, "nsteps": 1000, "first_step": Rstart},
-            eq_delta="default", eq_dthetadr="None", eq_dmdr="default", eq_gammaAdi="Nava", eq_rho2="rel",
-            thetaMax=np.pi / 2.,
-            adiabLoss=True, epsilon_e_rad=0.,
+            dens_pars=(None, A0, s, R_EJ, R_ISM), aa=aa, useSpread=False, adiabLoss=True, ncells=1,
+            ode_rtol=1e-3, ode_nsteps=1000, eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
+            eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
         )
 
         o_nava = evolove_driver(
-            driver=Driver_Nava_FS,
-            E0=E0,
-            Gamma0=Gamma0,
-            thetaE=0.,
-            theta0=theta0,
-            M0=None,
-            r_grid_pars=(),
+            driver=Driver_Nava_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
             r_grid=r_grid,
-            dens_pars=(None, A0, s, R_EJ, R_ISM),
-            # kwargs
-            useSpread=False, aa=-1., ncells=1, ode='dop853',
-            ode_pars={"rtol": 1e-5, "nsteps": 1000, "first_step": Rstart},
-            eq_delta="default", eq_dthetadr="None", eq_dmdr="default", eq_gammaAdi="Nava", eq_rho2="rel",
-            thetaMax=np.pi / 2.,
-            adiabLoss=True, epsilon_e_rad=0.,
+            dens_pars=(None, A0, s, R_EJ, R_ISM), aa=aa, useSpread=False, adiabLoss=True, ncells=1,
+            ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0., eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
+            eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
         )
-
-        # o_peer = evolove_driver(
-        #     driver=Driver_Peer_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
-        #     r_grid=r_grid,
-        #     dens_pars=(None, A0, s, R_EJ, R_ISM), aa=aa, useSpread=False, adiabLoss=True, ncells=1,
-        #     ode_rtol=1e-3, ode_nsteps=1000, eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
-        #     eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
-        # )
-        #
-        # o_nava = evolove_driver(
-        #     driver=Driver_Nava_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
-        #     r_grid=r_grid,
-        #     dens_pars=(None, A0, s, R_EJ, R_ISM), aa=aa, useSpread=False, adiabLoss=True, ncells=1,
-        #     ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0., eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
-        #     eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
-        # )
         # o_peer = EvolveShellPeer(E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None,
         #                          r_grid_pars=(Rstart, Rend, nR), r_grid=None, dens_pars=(None, A0, s, R_EJ, R_ISM),
         #                          ncells=None, p=p, eB=eB, epsilone=epsilone, useSpread=False, aa=aa)
@@ -497,11 +408,11 @@ class TestDynNonUniformCBM:
 
         subplots = {"ncols": 1, "nrows": 1, "figsize": (6.2, 4.6), "sharex": "all"}
         fig, ax = plt.subplots(**subplots)
-        ax.plot(o_peer.dynamics["R"], o_peer.dynamics["Gamma"], color="green", ls='-', label=r"$\Gamma$ [P]")
-        ax.plot(o_nava.dynamics["R"], o_nava.dynamics["Gamma"], color="blue", ls='-', label=r"$\Gamma$ [N]")
-        ax.plot(o_peer.dynamics["R"], o_peer.dynamics["Gamma"][0] * o_peer.dynamics["beta"], color="green", ls='--',
+        ax.plot(o_peer.get("R"), o_peer.get("Gamma"), color="green", ls='-', label=r"$\Gamma$ [P]")
+        ax.plot(o_nava.get("R"), o_nava.get("Gamma"), color="blue", ls='-', label=r"$\Gamma$ [N]")
+        ax.plot(o_peer.get("R"), o_peer.get("Gamma")[0] * o_peer.get("beta"), color="green", ls='--',
                 label=r"$\Gamma_0 \beta$")
-        ax.plot(o_nava.dynamics["R"], o_nava.dynamics["Gamma"][0] * o_nava.dynamics["beta"], color="blue", ls='--',
+        ax.plot(o_nava.get("R"), o_nava.get("Gamma")[0] * o_nava.get("beta"), color="blue", ls='--',
                 label=r"$\Gamma_0 \beta$")
         ax.set_xlabel(r"$R$", fontsize=14)
         ax.set_ylabel(r"$\Gamma$, $\Gamma_0\beta$", fontsize=14)
@@ -523,7 +434,7 @@ class TestDynNonUniformCBM:
         ax.legend(**legend)
 
         ax2 = ax.twinx()
-        ax2.plot(o_nava.dynamics["R"], o_nava.dynamics["rho"], color="gray", ls='-', label=r"$\rho$ [g/cm$^{3}$]")
+        ax2.plot(o_nava.get("R"), o_nava.get("rho"), color="gray", ls='-', label=r"$\rho$ [g/cm$^{3}$]")
         # ax2.plot(o_peer.out_fs_arr["R"], o_peer.out_fs_arr["m"], color="gray", ls='--', label=r"$m$ [P]")
         ax2.set_xlabel(r"$R$", fontsize=14)
         ax2.set_ylabel(r"$\rho_{\rm CBM}$", fontsize=14)  # r"$\rho_{\rm CBM}$"
@@ -564,59 +475,22 @@ class TestDynNonUniformCBM:
 
         aa = 1
 
+        # --- run dynamics
         o_peer = evolove_driver(
-            driver=Driver_Peer_FS,
-            E0=E0,
-            Gamma0=Gamma0,
-            thetaE=0.,
-            theta0=theta0,
-            M0=None,
-            r_grid_pars=(),
+            driver=Driver_Peer_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
             r_grid=r_grid,
-            dens_pars=(None, A0, s, 0, np.inf),
-            # kwargs
-            useSpread=False, aa=-1., ncells=1, ode='dop853',
-            ode_pars={"rtol": 1e-5, "nsteps": 1000, "first_step": Rstart},
-            eq_delta="default", eq_dthetadr="None", eq_dmdr="default", eq_gammaAdi="Nava", eq_rho2="rel",
-            thetaMax=np.pi / 2.,
-            adiabLoss=True, epsilon_e_rad=0.,
+            dens_pars=dens_pars, aa=aa, useSpread=False, adiabLoss=True, ncells=1,
+            ode_rtol=1e-3, ode_nsteps=1000, eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
+            eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
         )
 
         o_nava = evolove_driver(
-            driver=Driver_Nava_FS,
-            E0=E0,
-            Gamma0=Gamma0,
-            thetaE=0.,
-            theta0=theta0,
-            M0=None,
-            r_grid_pars=(),
+            driver=Driver_Nava_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
             r_grid=r_grid,
-            dens_pars=(None, A0, s, 0, np.inf),
-            # kwargs
-            useSpread=False, aa=-1., ncells=1, ode='dop853',
-            ode_pars={"rtol": 1e-5, "nsteps": 1000, "first_step": Rstart},
-            eq_delta="default", eq_dthetadr="None", eq_dmdr="default", eq_gammaAdi="Nava", eq_rho2="rel",
-            thetaMax=np.pi / 2.,
-            adiabLoss=True, epsilon_e_rad=0.,
+            dens_pars=dens_pars, aa=aa, useSpread=False, adiabLoss=True, ncells=1,
+            ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0., eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
+            eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
         )
-
-
-        # --- run dynamics
-        # o_peer = evolove_driver(
-        #     driver=Driver_Peer_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
-        #     r_grid=r_grid,
-        #     dens_pars=dens_pars, aa=aa, useSpread=False, adiabLoss=True, ncells=1,
-        #     ode_rtol=1e-3, ode_nsteps=1000, eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
-        #     eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
-        # )
-        #
-        # o_nava = evolove_driver(
-        #     driver=Driver_Nava_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
-        #     r_grid=r_grid,
-        #     dens_pars=dens_pars, aa=aa, useSpread=False, adiabLoss=True, ncells=1,
-        #     ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0., eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
-        #     eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
-        # )
         # o_peer = EvolveShellPeer(E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None,
         #                          r_grid_pars=(Rstart, Rend, nR), r_grid=None, dens_pars=(None, A0, s, 0, np.inf),
         #                          ncells=None, p=p, eB=eB, epsilone=epsilone, useSpread=False, aa=aa)
@@ -632,11 +506,11 @@ class TestDynNonUniformCBM:
 
         subplots = {"ncols": 1, "nrows": 1, "figsize": (6.2, 4.6), "sharex": "all"}
         fig, ax = plt.subplots(**subplots)
-        ax.plot(o_peer.dynamics["R"], o_peer.dynamics["Gamma"], color="green", ls='-', label=r"$\Gamma$ [P]")
-        ax.plot(o_nava.dynamics["R"], o_nava.dynamics["Gamma"], color="blue", ls='-', label=r"$\Gamma$ [N]")
-        ax.plot(o_peer.dynamics["R"], o_peer.dynamics["Gamma"][0] * o_peer.dynamics["beta"], color="green", ls='--',
+        ax.plot(o_peer.get("R"), o_peer.get("Gamma"), color="green", ls='-', label=r"$\Gamma$ [P]")
+        ax.plot(o_nava.get("R"), o_nava.get("Gamma"), color="blue", ls='-', label=r"$\Gamma$ [N]")
+        ax.plot(o_peer.get("R"), o_peer.get("Gamma")[0] * o_peer.get("beta"), color="green", ls='--',
                 label=r"$\Gamma_0 \beta$")
-        ax.plot(o_nava.dynamics["R"], o_nava.dynamics["Gamma"][0] * o_nava.dynamics["beta"], color="blue", ls='--',
+        ax.plot(o_nava.get("R"), o_nava.get("Gamma")[0] * o_nava.get("beta"), color="blue", ls='--',
                 label=r"$\Gamma_0 \beta$")
         ax.set_xlabel(r"$R$", fontsize=14)
         ax.set_ylabel(r"$\Gamma$, $\Gamma_0\beta$", fontsize=14)
@@ -658,8 +532,8 @@ class TestDynNonUniformCBM:
         ax.legend(**legend)
 
         ax2 = ax.twinx()
-        ax2.plot(o_nava.dynamics["R"], o_nava.dynamics["M2"], color="gray", ls='-', label=r"$m$ [N]")
-        ax2.plot(o_peer.dynamics["R"], o_peer.dynamics["M2"], color="gray", ls='--', label=r"$m$ [P]")
+        ax2.plot(o_nava.get("R"), o_nava.get("M2"), color="gray", ls='-', label=r"$m$ [N]")
+        ax2.plot(o_peer.get("R"), o_peer.get("M2"), color="gray", ls='--', label=r"$m$ [P]")
         ax2.set_xlabel(r"$R$", fontsize=14)
         ax2.set_ylabel(r"$m$ [g]", fontsize=14)  # r"$\rho_{\rm CBM}$"
         ax2.set_xscale("log")
@@ -703,54 +577,20 @@ class TestDynUniformCBM:
 
         # --- run dynamics
         o_nava_sp1 = evolove_driver(
-            driver=Driver_Nava_FS,
-            E0=E0,
-            Gamma0=Gamma0,
-            thetaE=0.,
-            theta0=theta0,
-            M0=None,
-            r_grid_pars=(),
+            driver=Driver_Nava_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
             r_grid=r_grid,
-            dens_pars=(nCM, None, None, None, None),
-            # kwargs
-            useSpread=True, aa=aa, ncells=1, ode='dop853',
-            ode_pars={"rtol": 1e-5, "nsteps": 1000, "first_step": Rstart},
-            eq_delta="default", eq_dthetadr="Adi", eq_dmdr="default", eq_gammaAdi="Peer", eq_rho2="transrel",
-            thetaMax=np.pi / 2.,
-            adiabLoss=True, epsilon_e_rad=0.,
+            dens_pars=(nCM, None, None, None, None), aa=aa, useSpread=True, adiabLoss=True, ncells=1,
+            ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0., eq_dthetadr=EqOpts.dthetadr_Adi, thetaMax=np.pi / 2.,
+            eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
         )
-        # o_nava_sp1 = evolove_driver(
-        #     driver=Driver_Nava_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
-        #     r_grid=r_grid,
-        #     dens_pars=(nCM, None, None, None, None), aa=aa, useSpread=True, adiabLoss=True, ncells=1,
-        #     ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0., eq_dthetadr=EqOpts.dthetadr_Adi, thetaMax=np.pi / 2.,
-        #     eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
-        # )
         aa = 1
         o_nava_sp2 = evolove_driver(
-            driver=Driver_Nava_FS,
-            E0=E0,
-            Gamma0=Gamma0,
-            thetaE=0.,
-            theta0=theta0,
-            M0=None,
-            r_grid_pars=(),
+            driver=Driver_Nava_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
             r_grid=r_grid,
-            dens_pars=(nCM, None, None, None, None),
-            # kwargs
-            useSpread=True, aa=aa, ncells=1, ode='dop853',
-            ode_pars={"rtol": 1e-5, "nsteps": 1000, "first_step": Rstart},
-            eq_delta="default", eq_dthetadr="AA", eq_dmdr="default", eq_gammaAdi="Peer", eq_rho2="transrel",
-            thetaMax=np.pi / 2.,
-            adiabLoss=True, epsilon_e_rad=0.,
+            dens_pars=(nCM, None, None, None, None), aa=aa, useSpread=True, adiabLoss=True, ncells=1,
+            ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0., eq_dthetadr=EqOpts.dthetadr_AA, thetaMax=np.pi / 2.,
+            eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
         )
-        # o_nava_sp2 = evolove_driver(
-        #     driver=Driver_Nava_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
-        #     r_grid=r_grid,
-        #     dens_pars=(nCM, None, None, None, None), aa=aa, useSpread=True, adiabLoss=True, ncells=1,
-        #     ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0., eq_dthetadr=EqOpts.dthetadr_AA, thetaMax=np.pi / 2.,
-        #     eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
-        # )
         # aa = 0
         # o_nava_sp3 = evolove_driver(
         #     driver=Driver_Nava_FS, E0=E0,Gamma0=Gamma0,thetaE=0.,theta0=theta0,M0=None,r_grid_pars=(),r_grid=r_grid,
@@ -815,8 +655,8 @@ class TestDynUniformCBM:
 
         # ax.plot(o_nava_nosp1.out_fs_arr["R"], o_nava_nosp1.out_fs_arr["Gamma"], color="black", ls='-')  # , label=r"$\Gamma$ [P]")
         # ax.plot(o_nava_nosp2.out_fs_arr["R"], o_nava_nosp2.out_fs_arr["Gamma"], color="gray", ls='-')  # , label=r"$\Gamma$ [P]")
-        ax.plot(o_nava_sp1.dynamics["R"], o_nava_sp1.dynamics["Gamma"], color="green", ls='-')  # , label=r"$\Gamma$ [N]")
-        ax.plot(o_nava_sp2.dynamics["R"], o_nava_sp2.dynamics["Gamma"], color="red", ls='-')  # , label=r"$\Gamma$ [N]")
+        ax.plot(o_nava_sp1.get("R"), o_nava_sp1.get("Gamma"), color="green", ls='-')  # , label=r"$\Gamma$ [N]")
+        ax.plot(o_nava_sp2.get("R"), o_nava_sp2.get("Gamma"), color="red", ls='-')  # , label=r"$\Gamma$ [N]")
         # # # ax.plot(o_nava_sp3.get("R"), o_nava_sp3.get("Gamma"), color="orange", ls='-')
         # ax.plot(o_peer.out_fs_arr["R"], o_peer.out_fs_arr["Gamma"], color="gray", ls='-')#, label=r"$\Gamma$ [P]")
 
@@ -825,8 +665,10 @@ class TestDynUniformCBM:
 
         # ax.plot(o_nava_nosp1.out_fs_arr["R"], Gamma0 * o_nava_nosp1.out_fs_arr["beta"], color="black", ls='--')#, label=r"$\Gamma_0 \beta$ [P]")
         # ax.plot(o_nava_nosp2.out_fs_arr["R"], Gamma0 * o_nava_nosp2.out_fs_arr["beta"], color="gray", ls='--')  # , label=r"$\Gamma_0 \beta$ [P]")
-        ax.plot(o_nava_sp1.dynamics["R"], Gamma0 * o_nava_sp1.dynamics["beta"], color="green", ls='--')  # , label=r"$\Gamma_0 \beta$ [N]")
-        ax.plot(o_nava_sp2.dynamics["R"], Gamma0 * o_nava_sp2.dynamics["beta"], color="red", ls='--')  # , label=r"$\Gamma_0 \beta$ [N]")
+        ax.plot(o_nava_sp1.get("R"), Gamma0 * o_nava_sp1.get("beta"), color="green",
+                ls='--')  # , label=r"$\Gamma_0 \beta$ [N]")
+        ax.plot(o_nava_sp2.get("R"), Gamma0 * o_nava_sp2.get("beta"), color="red",
+                ls='--')  # , label=r"$\Gamma_0 \beta$ [N]")
         # # # ax.plot(o_nava_sp3.get("R"), Gamma0 * o_nava_sp3.get("beta"), color="orange", ls='--')#, label=r"$\Gamma_0 \beta$ [N]")
 
         # ax.plot(o_peer.out_fs_arr["R"], Gamma0 * o_peer.out_fs_arr["beta"], color="gray", ls='--')#, label=r"$\Gamma$ [P]")
@@ -856,8 +698,9 @@ class TestDynUniformCBM:
         ax.set_xlim(5e16, 1e21)
 
         ax2 = ax.twinx()
-        ax2.plot(o_nava_sp1.dynamics["R"], o_nava_sp1.dynamics["theta"] * 180 / np.pi, color="green", ls=':')  # , label=r"$m$ [N]")
-        ax2.plot(o_nava_sp2.dynamics["R"], o_nava_sp2.dynamics["theta"] * 180 / np.pi, color="red", ls=':')  # , label=r"$m$ [P]")
+        ax2.plot(o_nava_sp1.get("R"), o_nava_sp1.get("theta") * 180 / np.pi, color="green",
+                 ls=':')  # , label=r"$m$ [N]")
+        ax2.plot(o_nava_sp2.get("R"), o_nava_sp2.get("theta") * 180 / np.pi, color="red", ls=':')  # , label=r"$m$ [P]")
         # # # ax2.plot(o_nava_sp3.get("R"), o_nava_sp3.get("theta")*180/np.pi, color="orange", ls=':')#, label=r"$m$ [P]")
 
         # ax2.plot(o_peer.out_fs_arr["R"], o_peer.out_fs_arr["theta"]*180/np.pi, color="gray", ls=':')#, label=r"$\Gamma$ [P]")
@@ -904,81 +747,30 @@ class TestDynUniformCBM:
 
         # --- run dynamics
         o_peer = evolove_driver(
-            driver=Driver_Peer_FS,
-            E0=E0,
-            Gamma0=Gamma0,
-            thetaE=0.,
-            theta0=theta0,
-            M0=None,
-            r_grid_pars=(),
+            driver=Driver_Peer_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
             r_grid=r_grid,
-            dens_pars=(nCM, None, None, None, None),
-            # kwargs
-            useSpread=False, aa=aa, ncells=1, ode='dop853',
-            ode_pars={"rtol": 1e-5, "nsteps": 1000, "first_step": Rstart},
-            eq_delta="default", eq_dthetadr="None", eq_dmdr="default", eq_gammaAdi="Peer", eq_rho2="transrel",
-            thetaMax=np.pi / 2.,
-            adiabLoss=True, epsilon_e_rad=0.,
+            dens_pars=(nCM, None, None, None, None), aa=aa, useSpread=False, adiabLoss=True, ncells=1,
+            ode_rtol=1e-3, ode_nsteps=1000, eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
+            eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
         )
-        # o_peer = evolove_driver(
-        #     driver=Driver_Peer_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
-        #     r_grid=r_grid,
-        #     dens_pars=(nCM, None, None, None, None), aa=aa, useSpread=False, adiabLoss=True, ncells=1,
-        #     ode_rtol=1e-3, ode_nsteps=1000, eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
-        #     eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
-        # )
 
         o_nava = evolove_driver(
-            driver=Driver_Nava_FS,
-            E0=E0,
-            Gamma0=Gamma0,
-            thetaE=0.,
-            theta0=theta0,
-            M0=None,
-            r_grid_pars=(),
+            driver=Driver_Nava_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
             r_grid=r_grid,
-            dens_pars=(nCM, None, None, None, None),
-            # kwargs
-            useSpread=False, aa=aa, ncells=1, ode='dop853',
-            ode_pars={"rtol": 1e-5, "nsteps": 1000, "first_step": Rstart},
-            eq_delta="default", eq_dthetadr="None", eq_dmdr="default", eq_gammaAdi="Peer", eq_rho2="transrel",
-            thetaMax=np.pi / 2.,
-            adiabLoss=True, epsilon_e_rad=0.,
+            dens_pars=(nCM, None, None, None, None), aa=aa, useSpread=False, adiabLoss=True, ncells=1,
+            ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0., eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
+            eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
         )
-        # o_nava = evolove_driver(
-        #     driver=Driver_Nava_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
-        #     r_grid=r_grid,
-        #     dens_pars=(nCM, None, None, None, None), aa=aa, useSpread=False, adiabLoss=True, ncells=1,
-        #     ode_rtol=1e-3, ode_nsteps=1000, epsilon_e_rad=0., eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
-        #     eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
-        # )
 
         aa = 1  # Sets some equtions
         # --- run dynamics
         o_peer_ = evolove_driver(
-            driver=Driver_Peer_FS,
-            E0=E0,
-            Gamma0=Gamma0,
-            thetaE=0.,
-            theta0=theta0,
-            M0=None,
-            r_grid_pars=(),
+            driver=Driver_Peer_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
             r_grid=r_grid,
-            dens_pars=(nCM, None, None, None, None),
-            # kwargs
-            useSpread=False, aa=aa, ncells=1, ode='dop853',
-            ode_pars={"rtol": 1e-5, "nsteps": 1000, "first_step": Rstart},
-            eq_delta="default", eq_dthetadr="None", eq_dmdr="default", eq_gammaAdi="Peer", eq_rho2="transrel",
-            thetaMax=np.pi / 2.,
-            adiabLoss=True, epsilon_e_rad=0.,
+            dens_pars=(nCM, None, None, None, None), aa=aa, useSpread=False, adiabLoss=True, ncells=1,
+            ode_rtol=1e-3, ode_nsteps=1000, eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
+            eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
         )
-        # o_peer_ = evolove_driver(
-        #     driver=Driver_Peer_FS, E0=E0, Gamma0=Gamma0, thetaE=0., theta0=theta0, M0=None, r_grid_pars=(),
-        #     r_grid=r_grid,
-        #     dens_pars=(nCM, None, None, None, None), aa=aa, useSpread=False, adiabLoss=True, ncells=1,
-        #     ode_rtol=1e-3, ode_nsteps=1000, eq_dthetadr=EqOpts.dthetadr_None, thetaMax=np.pi / 2.,
-        #     eq_gammaAdi=EqOpts.gamma_adi_peer, eq_rhoprime=EqOpts.rho2_transrel
-        # )
 
         # --- analytic arguments
         R = np.logspace(Rstart, Rend, nR)
@@ -988,12 +780,12 @@ class TestDynUniformCBM:
         mask = R > rdec
         # tdec = o_dyn.tobs[find_nearest_index(o_dyn.R, rdec)]
         Gamma_bm = get_bm79(E0, nCM * (cgs.me + cgs.mp), s, R)
-        delta_R_bm = R[find_nearest_index(o_nava.dynamics["Gamma"], 0.1 * Gamma0)] / \
+        delta_R_bm = R[find_nearest_index(o_nava.get("Gamma"), 0.1 * Gamma0)] / \
                      R[find_nearest_index(Gamma_bm, 0.1 * Gamma0)]
 
         beta0 = get_beta(Gamma0)
-        beta_st = get_sedovteylor(rdec, beta0, o_nava.dynamics["R"])
-        delta_R_st = R[find_nearest_index(o_nava.dynamics["beta"], 0.1 * beta0)] / \
+        beta_st = get_sedovteylor(rdec, beta0, o_nava.get("R"))
+        delta_R_st = R[find_nearest_index(o_nava.get("beta"), 0.1 * beta0)] / \
                      R[find_nearest_index(beta_st, 0.1 * beta0)]
 
         # --- plot
@@ -1007,14 +799,14 @@ class TestDynUniformCBM:
         ax.plot(R[mask] * delta_R_st, Gamma0 * beta_st[mask], color="black", ls='--',
                 label=r"$\Gamma_0 \beta_{\rm ST}$")
 
-        ax.plot(o_peer.dynamics["R"], o_peer.dynamics["Gamma"], color="blue", ls='-')  # , label=r"$\Gamma$ [P]")
-        ax.plot(o_nava.dynamics["R"], o_nava.dynamics["Gamma"], color="green", ls='-')  # , label=r"$\Gamma$ [N]")
-        ax.plot(o_peer_.dynamics["R"], o_peer_.dynamics["Gamma"], color="red", ls='-')  # , label=r"$\Gamma$ [N]")
+        ax.plot(o_peer.get("R"), o_peer.get("Gamma"), color="blue", ls='-')  # , label=r"$\Gamma$ [P]")
+        ax.plot(o_nava.get("R"), o_nava.get("Gamma"), color="green", ls='-')  # , label=r"$\Gamma$ [N]")
+        ax.plot(o_peer_.get("R"), o_peer_.get("Gamma"), color="red", ls='-')  # , label=r"$\Gamma$ [N]")
 
-        ax.plot(o_peer.dynamics["R"], Gamma0 * o_peer.dynamics["beta"], color="blue", ls='--')  # , label=r"$\Gamma_0 \beta$ [P]")
-        ax.plot(o_nava.dynamics["R"], Gamma0 * o_nava.dynamics["beta"], color="green",
+        ax.plot(o_peer.get("R"), Gamma0 * o_peer.get("beta"), color="blue", ls='--')  # , label=r"$\Gamma_0 \beta$ [P]")
+        ax.plot(o_nava.get("R"), Gamma0 * o_nava.get("beta"), color="green",
                 ls='--')  # , label=r"$\Gamma_0 \beta$ [N]")
-        ax.plot(o_peer_.dynamics["R"], Gamma0 * o_peer_.dynamics["beta"], color="red",
+        ax.plot(o_peer_.get("R"), Gamma0 * o_peer_.get("beta"), color="red",
                 ls='--')  # , label=r"$\Gamma_0 \beta$ [N]")
 
         ax.plot([-10. - 20], [-20. - 30], color='gray', ls='-', label=r"$\Gamma$")
@@ -1052,14 +844,14 @@ class TestDynUniformCBM:
 
 
 if __name__ == '__main__':
-    # o_test = TestDynWithRadLoss()
-    # o_test.test_plot_dyn_evol_nonspread_radloss()
+    o_test = TestDynWithRadLoss()
+    o_test.test_plot_dyn_evol_nonspread_radloss()
 
-    # o_test = TestDynNonUniformCBM()
-    # o_test.task_plot_evold_unif_rs()
-    # o_test.task_plot_dyn_evol_step_dens_prof_steep()
-    # o_test.task_plot_dyn_evol_non_uniform_cmb()
+    o_test = TestDynNonUniformCBM()
+    o_test.task_plot_evold_unif_rs()
+    o_test.task_plot_dyn_evol_step_dens_prof_steep()
+    o_test.task_plot_dyn_evol_non_uniform_cmb()
 
     o_test = TestDynUniformCBM()
-    # o_test.task_plot_dyn_evol_spreading()
+    o_test.task_plot_dyn_evol_spreading()
     o_test.task_plot_dyn_evol_and_bm97_st_solutions()

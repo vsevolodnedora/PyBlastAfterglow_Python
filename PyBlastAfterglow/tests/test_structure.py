@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PyBlastAfterglow.uutils import cgs
 from PyBlastAfterglow.structure import Structure_Angular
-from PyBlastAfterglow.dynamics import Driver_Nava_FS, Driver_Peer_FS, EqOpts
+# from PyBlastAfterglow.dynamics import Driver_Nava_FS, Driver_Peer_FS
 
 package_dir = Path(__file__).parent.parent.parent
 # where to read sampled files

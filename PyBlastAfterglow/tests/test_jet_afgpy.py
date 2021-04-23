@@ -60,14 +60,18 @@ def test_compare_jet_lightcurves(withSpread = False, a = 1.,
             theta0j=thetaW,
             r_pars=(8., 22., 1000),
             dens_pars=(n0, None, None, None, None),
-            driver=("Nava", {"aa": a, "useSpread": withSpread, "epsilon_e_rad": 0, "adiabLoss": True,
-                                       "eq_dthetadr": eq_dthetadr, "thetaMax": thetaMax,
-                                       "eq_gammaAdi": "gamma_adi_peer", "eq_rhoprime": "rho2_transrel",
-                                       "tprompt": 1e3, "epsilon_e_rad_RS": 0., "adiabLoss_RS": True,
-                                       "ode_rtol": 1e-3, "ode_nsteps": 3000}),
+            # driver=("Nava", {"aa": a, "useSpread": withSpread, "epsilon_e_rad": 0, "adiabLoss": True,
+            #                            "eq_dthetadr": eq_dthetadr, "thetaMax": thetaMax,
+            #                            "eq_gammaAdi": "gamma_adi_peer", "eq_rhoprime": "rho2_transrel",
+            #                            "tprompt": 1e3, "epsilon_e_rad_RS": 0., "adiabLoss_RS": True,
+            #                            "ode_rtol": 1e-3, "ode_nsteps": 3000}),
+            driver=("Nava", {"useSpread":withSpread, "aa":a, "ncells":1, "ode":'dop853',
+                             "ode_pars":{"rtol":1e-5, "nsteps":1000, "first_step": 'default'},
+                             "eq_delta":"default", "eq_dthetadr":eq_dthetadr, "eq_dmdr":"default", "eq_gammaAdi":"Nava",
+                             "eq_rho2":"rel", "thetaMax":thetaMax, "adiabLoss":True, "epsilon_e_rad":0.}),
             electrons=("Electron_BPL", {"p": p, "eps_e": eps_e, "eps_b": eps_B}),
             synchrotron=("Synchrotron_WSPN99", {"ssa":False}),
-            eats=("EATS_StructuredLayersSource_Jit", {})
+            eats=("EATS_StructuredLayersSource", {})
         )
 
         lightcurve = model.eats.lightcurve(i_thetaobs, t, i_freq, z, dL)
@@ -155,10 +159,10 @@ def test_compare_jet_lightcurves(withSpread = False, a = 1.,
 
     plt.show()
 
-test_compare_jet_lightcurves(withSpread = False, a = 0, eq_dthetadr="dthetadr_None", thetaMax=np.pi/2.,
+test_compare_jet_lightcurves(withSpread = False, a = 0, eq_dthetadr="None", thetaMax=np.pi/2.,
                                            save="test_jet_with_afterglowpy_nospread.png", load_data=True)
 
 
 
-test_compare_jet_lightcurves(withSpread = True, a = 1, eq_dthetadr="dthetadr_AA", thetaMax=np.pi/2.,
+test_compare_jet_lightcurves(withSpread = True, a = 1, eq_dthetadr="AA", thetaMax=np.pi/2.,
                                            save="test_jet_with_afterglowpy_spread.png", load_data=True)

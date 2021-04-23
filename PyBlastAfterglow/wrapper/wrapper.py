@@ -8,11 +8,11 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from scipy import interpolate
 
-from PyBlastAfterglow.dynamics import (Driver_Peer_FS, Driver_Nava_FS, Driver_Nava_FSRS, rho_dlnrho1dR, EqOpts)
+from PyBlastAfterglow.dynamics import (Driver_Peer_FS, Driver_Nava_FS, Driver_Nava_FSRS, rho_dlnrho1dR)
 from PyBlastAfterglow.electrons import (Electron_BPL, Electron_BPL_Accurate)
 from PyBlastAfterglow.synchrotron import (Synchrotron_Joh06, Synchrotron_WSPN99, Synchrotron_DM06, freq_to_integrate)
 from PyBlastAfterglow.structure import Structure_Angular #, Structure_Uniform
-from PyBlastAfterglow.eats import EATS_StructuredLayersSource, EATS_StructuredLayersSource_Jit#, EATS_UniformSingleSource
+from PyBlastAfterglow.eats import EATS_StructuredLayersSource#, EATS_UniformSingleSource
 from PyBlastAfterglow.shells import Shell_FS, Shell_FS_Electrons_Synchrotron
 from PyBlastAfterglow.uutils import cgs
 
@@ -26,31 +26,28 @@ class BlastWave:
                  **kwargs):
 
         # set parameters
-        if driver[0] == "Peer":
-            o_driver, driver_kwargs = (Driver_Peer_FS, copy.deepcopy(driver[1]))
-        elif driver[0] == "Nava":
-            o_driver, driver_kwargs = (Driver_Nava_FS, copy.deepcopy(driver[1]))
-        elif driver[0] == "NavaFSRS":
-            o_driver, driver_kwargs = (Driver_Nava_FSRS, copy.deepcopy(driver[1]))
+        if driver[0] == "Peer": o_driver, driver_kwargs = (Driver_Peer_FS, copy.deepcopy(driver[1]))
+        elif driver[0] == "Nava": o_driver, driver_kwargs = (Driver_Nava_FS, copy.deepcopy(driver[1]))
+        elif driver[0] == "NavaFSRS": o_driver, driver_kwargs = (Driver_Nava_FSRS, copy.deepcopy(driver[1]))
         else: raise NameError("Driver Name is not recognized: {}".format(driver[0]))
 
-        if driver_kwargs["eq_dthetadr"] == "dthetadr_None": tmp = EqOpts.dthetadr_None
-        elif driver_kwargs["eq_dthetadr"] == "dthetadr_Adi": tmp = EqOpts.dthetadr_Adi
-        elif driver_kwargs["eq_dthetadr"] == "dthetadr_Adi_Rd": tmp = EqOpts.dthetadr_Adi_Rd
-        elif driver_kwargs["eq_dthetadr"] == "dthetadr_AA": tmp = EqOpts.dthetadr_AA
-        elif driver_kwargs["eq_dthetadr"] == "dthetadr_AA_Rd": tmp = EqOpts.dthetadr_AA_Rd
-        else: raise NameError("Driver kwarg 'eq_dthetadr' is not correct: {}".format(driver_kwargs["eq_dthetadr"]))
-        driver_kwargs["eq_dthetadr"] = tmp
-
-        if driver_kwargs["eq_gammaAdi"] == "gamma_adi_peer": tmp = EqOpts.gamma_adi_peer
-        elif driver_kwargs["eq_gammaAdi"] == "gamma_adi_nava": tmp = EqOpts.gamma_adi_nava
-        else: raise NameError("Driver kwarg 'eq_gammaAdi' is not correct: {}".format(driver_kwargs["eq_gammaAdi"]))
-        driver_kwargs["eq_gammaAdi"] = tmp
-
-        if driver_kwargs["eq_rhoprime"] == "rho2_rel": tmp = EqOpts.rho2_rel
-        elif driver_kwargs["eq_rhoprime"] == "rho2_transrel": tmp = EqOpts.rho2_transrel
-        else: raise NameError("Driver kwarg 'eq_rhoprime' is not correct: {}".format(driver_kwargs["eq_rhoprime"]))
-        driver_kwargs["eq_rhoprime"] = tmp
+        # if driver_kwargs["eq_dthetadr"] == "dthetadr_None": tmp = EqOpts.dthetadr_None
+        # elif driver_kwargs["eq_dthetadr"] == "dthetadr_Adi": tmp = EqOpts.dthetadr_Adi
+        # elif driver_kwargs["eq_dthetadr"] == "dthetadr_Adi_Rd": tmp = EqOpts.dthetadr_Adi_Rd
+        # elif driver_kwargs["eq_dthetadr"] == "dthetadr_AA": tmp = EqOpts.dthetadr_AA
+        # elif driver_kwargs["eq_dthetadr"] == "dthetadr_AA_Rd": tmp = EqOpts.dthetadr_AA_Rd
+        # else: raise NameError("Driver kwarg 'eq_dthetadr' is not correct: {}".format(driver_kwargs["eq_dthetadr"]))
+        # driver_kwargs["eq_dthetadr"] = tmp
+        #
+        # if driver_kwargs["eq_gammaAdi"] == "gamma_adi_peer": tmp = EqOpts.gamma_adi_peer
+        # elif driver_kwargs["eq_gammaAdi"] == "gamma_adi_nava": tmp = EqOpts.gamma_adi_nava
+        # else: raise NameError("Driver kwarg 'eq_gammaAdi' is not correct: {}".format(driver_kwargs["eq_gammaAdi"]))
+        # driver_kwargs["eq_gammaAdi"] = tmp
+        #
+        # if driver_kwargs["eq_rhoprime"] == "rho2_rel": tmp = EqOpts.rho2_rel
+        # elif driver_kwargs["eq_rhoprime"] == "rho2_transrel": tmp = EqOpts.rho2_transrel
+        # else: raise NameError("Driver kwarg 'eq_rhoprime' is not correct: {}".format(driver_kwargs["eq_rhoprime"]))
+        # driver_kwargs["eq_rhoprime"] = tmp
 
         if electrons[0] == "Electron_BPL":
             o_electrons, electrons_kwargs = (Electron_BPL, copy.deepcopy(electrons[1]))
@@ -64,12 +61,13 @@ class BlastWave:
             o_synchrotron, synchrotron_kwargs = (Synchrotron_WSPN99, copy.deepcopy(synchrotron[1]))
         elif synchrotron[0] == "Synchrotron_DM06":
             o_synchrotron, synchrotron_kwargs = (Synchrotron_DM06, copy.deepcopy(synchrotron[1]))
-        else: raise NameError("Syncrotron Name is not recognized: {}".format(synchrotron[0]))
+        else:
+            raise NameError("Syncrotron Name is not recognized: {}".format(synchrotron[0]))
 
         if eats[0] == "EATS_StructuredLayersSource":
             o_eats, eats_kwargs = (EATS_StructuredLayersSource, copy.deepcopy(eats[1]))
-        elif eats[0] == "EATS_StructuredLayersSource_Jit":
-            o_eats, eats_kwargs = (EATS_StructuredLayersSource_Jit, copy.deepcopy(eats[1]))
+        # elif eats[0] == "EATS_StructuredLayersSource_Jit":
+        #     o_eats, eats_kwargs = (EATS_StructuredLayersSource_Jit, copy.deepcopy(eats[1]))
         else:
             raise NameError("EATS Name is not recognized: {}".format(eats[0]))
 
@@ -103,6 +101,8 @@ class BlastWave:
         assert not (o_driver is None) # without a driver, shell cannot be evoloved
         if not "ncells" in driver_kwargs.keys(): driver_kwargs["ncells"] = self.struct.ncells
         else: driver_kwargs["ncells"] += self.struct.ncells # used for scaling the swept-up mass
+        if driver_kwargs["ode_pars"]["first_step"] == 'default':
+            driver_kwargs["ode_pars"]["first_step"] = r_pars[0]
 
         # evolve every layer/shell
         shell = None
@@ -131,8 +131,7 @@ class BlastWave:
 
         # correct shells 'thetas' as they are a part of a structured jet
         self.cthetas = [self.struct.cthetas0[ii] +
-                        0.5 * (2 * self.shells[ii].dyn.get("theta")[1:] -
-                               2 * self.struct.theta0j) for ii
+                        0.5 * (2 * self.shells[ii].dyn.vals["theta"][1:] - 2 * self.struct.theta0j) for ii
                         in range(self.struct.nlayers)]
         '''
         def get_thetas(self, joAngle):
